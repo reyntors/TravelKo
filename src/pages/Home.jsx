@@ -3,6 +3,7 @@ import hero from "../assets/landingPage.png";
 import tour1 from "../assets/tour1.jpg";
 import tour2 from "../assets/tour2.png";
 import tour3 from "../assets/tour3.jpg";
+import tour4 from "../assets/tour4.jpg";
 import { NavLink } from "react-router-dom";
 
 function Home() {
@@ -27,7 +28,7 @@ function Home() {
       </section>
 
   
-     <section className="section">
+  <section className="section">
   <h2>Featured Adventure</h2>
   <p className="subtitle">Handpicked experiences for the ultimate adventurer</p>
 
@@ -110,7 +111,7 @@ function Home() {
   </div>
 </section>
 
-{/* CTA */}
+
 <section className="cta">
   <h2>Ready to Start Your Adventure?</h2>
   <p>Join thousands of adventurers who trust TravelKo</p>
@@ -126,6 +127,57 @@ function Home() {
         <h1>2,500+</h1>
         <p>Happy Travelers</p>
     </div>
+      <div className="follows-count">
+        <h1>150+</h1>
+        <p>Tour Package</p>
+    </div>
+      <div className="follows-count">
+        <h1>50+</h1>
+        <p>Expert Coordinators</p>
+    </div>
+      <div className="follows-count">
+        <h1>4.9</h1>
+        <p>Average Rating</p>
+    </div>
+</section>
+
+<section className="section">
+  <h2>Adventure Categories</h2>
+  <p className="subtitle">Choose from our diverse range of adventure</p>
+
+  <div className="adventure-cards">
+
+    <div className="adventure-card">
+      <img src={tour1} alt="Mount Pinatubo Adventure" />
+      <h3>Mounting Climbing</h3>
+      <p className="location">Conquer peaks and enjoy breathtaking views</p>
+      <p className="private-tour">45 Tours</p>
+    </div>
+     <div className="adventure-card">
+      <img src={tour3} alt="Mount Pinatubo Adventure" />
+      <h3>Scuba Diving</h3>
+      <p className="location">Conquer peaks and enjoy breathtaking views</p>
+      <p className="private-tour">45 Tours</p>
+    </div>
+     <div className="adventure-card">
+      <img src={tour2} alt="Mount Pinatubo Adventure" />
+      <h3>Island Hoppping</h3>
+      <p className="location">Conquer peaks and enjoy breathtaking views</p>
+      <p className="private-tour">45 Tours</p>
+    </div>
+     <div className="adventure-card">
+      <img src={tour4} alt="Mount Pinatubo Adventure" />
+      <h3>Camping</h3>
+      <p className="location">Conquer peaks and enjoy breathtaking views</p>
+      <p className="private-tour">45 Tours</p>
+    </div>
+
+   
+   
+
+
+ 
+  </div>
 </section>
 
     </>

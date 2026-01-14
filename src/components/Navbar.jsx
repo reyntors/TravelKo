@@ -1,39 +1,70 @@
+import { useState } from "react";
+import {
+  Navbar,
+  NavbarBrand,
+  NavbarToggler,
+  Collapse,
+  Nav,
+  NavItem,
+  Button
+} from "reactstrap";
 import { NavLink } from "react-router-dom";
-import "./Navbar.css";
 
-function Navbar() {
+function AppNavbar() {
+  const [isOpen, setIsOpen] = useState(false);
+
   return (
-    <nav className="navbar">
-      <h1 className="logo">TravelKo</h1>
+    <Navbar
+      color="white"
+      light
+      expand="md"
+      fixed="top"
+    
+    >
+      <NavbarBrand
+        tag={NavLink}
+        to="/"
+        style={{ fontFamily: "Pacifico", color: "#16A34A" }}
+      >
+        TravelKo
+      </NavbarBrand>
 
-      <ul className="nav-links">
-        <li>
-          <NavLink to="/" end>
-            Home
-          </NavLink>
-        </li>
+      <NavbarToggler onClick={() => setIsOpen(!isOpen)} />
 
-        <li>
-          <NavLink to="/tours">
-            Tours
-          </NavLink>
-        </li>
-
-        <li>
-          <NavLink to="/about">
-            About Us
-          </NavLink>
-        </li>
-
-        <li>
-            <NavLink to="/login" className="button">
-                Login
+      <Collapse isOpen={isOpen} navbar>
+        <Nav className="ms-auto align-items-center gap-2" navbar>
+          <NavItem>
+            <NavLink className="nav-link" to="/" end>
+              Home
             </NavLink>
-            </li>
+          </NavItem>
 
-      </ul>
-    </nav>
+          <NavItem>
+            <NavLink className="nav-link" to="/tours">
+              Tours
+            </NavLink>
+          </NavItem>
+
+          <NavItem>
+            <NavLink className="nav-link" to="/about">
+              About Us
+            </NavLink>
+          </NavItem>
+
+          <NavItem>
+            <Button
+              color="success"
+              tag={NavLink}
+              to="/login"
+              className="rounded-pill px-4"
+            >
+              Login
+            </Button>
+          </NavItem>
+        </Nav>
+      </Collapse>
+    </Navbar>
   );
 }
 
-export default Navbar;
+export default AppNavbar;
