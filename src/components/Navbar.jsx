@@ -19,6 +19,7 @@ function AppNavbar() {
       light
       expand="md"
       fixed="top"
+      className="shadow-sm"
     
     >
       <NavbarBrand
@@ -29,7 +30,10 @@ function AppNavbar() {
         TravelKo
       </NavbarBrand>
 
-      <NavbarToggler onClick={() => setIsOpen(!isOpen)} />
+      <NavbarToggler onClick={() => setIsOpen(!isOpen)}  style={{
+    border: "none",
+    boxShadow: "none",
+  }}/>
 
       <Collapse isOpen={isOpen} navbar>
         <Nav className="ms-auto align-items-center gap-2" navbar>

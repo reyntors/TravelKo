@@ -1,4 +1,5 @@
 import Navbar from "./components/Navbar";
+import Footer from "./components/Footer"; // ✅ import footer
 import { Routes, Route } from "react-router-dom";
 
 import Home from "./pages/Home";
@@ -10,6 +11,7 @@ function App() {
   return (
     <>
       <Navbar />
+      
       <main style={{ paddingTop: "80px" }}>
         <Routes>
           <Route path="/" element={<Home />} />
@@ -18,6 +20,8 @@ function App() {
           <Route path="/login" element={<Login />} />
         </Routes>
       </main>
+
+      <Footer /> {/* ✅ Footer appears on all pages */}
     </>
   );
 }
