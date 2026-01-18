@@ -57,7 +57,12 @@ export default function Footer() {
 
         <Row>
           <Col className="text-center" style={{ fontSize: "0.85rem", fontWeight: 300 }}>
-            © 2026 TravelKo. All rights reserved. | Connecting adventures worldwide.
+             {/* Copyright */}
+          <div className="text-center mt-4">
+            <p className="text-whitesmall " >
+              &copy; {new Date().getFullYear()} TravelKo. All rights reserved.
+            </p>
+          </div>
           </Col>
         </Row>
       </Container>
