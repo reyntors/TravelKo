@@ -22,7 +22,6 @@ import "swiper/css";
 import {
   FaStar,
   FaMapMarkerAlt,
-  FaCheckCircle,
   FaChevronLeft,
   FaChevronRight,
   FaUser,
@@ -33,6 +32,12 @@ import {
   FaHeart,
   FaMapMarkedAlt,
   FaThumbsUp,
+  FaCheckCircle,
+  FaCreditCard,
+  FaMoneyBillWave,
+  FaTrophy,
+  FaPhoneAlt,
+  FaMobileAlt,
 } from "react-icons/fa";
 
 const featuredTours = [
@@ -145,20 +150,30 @@ function Home() {
             <span className="brand">TravelKo</span>
           </h1>
 
-          <div className="d-flex flex-column flex-md-row justify-content-center align-items-center gap-3 mt-4">
-            <NavLink to="/tours" className="w-100 w-md-auto">
-              <Button color="success" className="w-100 px-5 rounded-pill">
+          <div className="d-flex flex-column flex-md-row justify-content-center align-items-stretch align-items-md-center gap-3 mt-4">
+            <NavLink
+              to="/tours"
+              className="d-block d-md-inline-block w-100 w-md-auto"
+            >
+              <Button
+                color="success"
+                className="w-100 w-md-auto px-5 rounded-pill text-nowrap"
+              >
                 Explore Tours
               </Button>
             </NavLink>
-
-            <Button
-              outline
-              color="light"
-              className="w-100 w-md-auto px-5 rounded-pill"
+            <NavLink
+              to="/about"
+              className="d-block d-md-inline-block w-100 w-md-auto"
             >
-              Learn More
-            </Button>
+              <Button
+                outline
+                color="light"
+                className="w-100 w-md-auto px-5 rounded-pill text-nowrap"
+              >
+                Learn More
+              </Button>
+            </NavLink>
           </div>
         </div>
       </section>
@@ -316,14 +331,18 @@ function Home() {
                 Join thousands of adventurers who trust TravelKo{" "}
               </p>
               <div className="cta-buttons d-flex flex-column flex-sm-row justify-content-center gap-3">
-                <Button color="success" size="lg">
-                  {" "}
-                  Browse Tours{" "}
-                </Button>
-                <Button outline color="success" size="lg">
-                  {" "}
-                  Become a Coordinator{" "}
-                </Button>
+                <NavLink to="/tours">
+                  <Button color="success" size="lg">
+                    {" "}
+                    Browse Tours{" "}
+                  </Button>
+                </NavLink>
+                <NavLink to="coordinator/register">
+                  <Button outline color="success" size="lg">
+                    {" "}
+                    Become a Coordinator{" "}
+                  </Button>
+                </NavLink>
               </div>
             </Col>
           </Row>
@@ -538,7 +557,18 @@ function Home() {
         <Container>
           {/* Title */}
           <div className="text-center mb-5">
-            <h2 className="fw-bold">Why Choose TravelKo?</h2>
+            <h2 className="fw-bold">
+              Why Choose{" "}
+              <span
+                style={{
+                  fontFamily: "Pacifico",
+                  color: "#16A34A",
+                  fontWeight: 300,
+                }}
+              >
+                TravelKo?
+              </span>
+            </h2>
             <p className="text-muted">
               We’re committed to providing the best adventure experiences
             </p>
@@ -550,7 +580,7 @@ function Home() {
             <Col xs="12" sm="6" md="4" lg="2">
               <div className="feature-card p-3 h-100">
                 <div className="feature-icon mb-2" style={{ fontSize: "2rem" }}>
-                  ✅
+                  <FaCheckCircle color="green" />
                 </div>
                 <h6 className="fw-bold">Verified Coordinators</h6>
                 <p className="text-muted" style={{ fontSize: "0.85rem" }}>
@@ -564,7 +594,7 @@ function Home() {
             <Col xs="12" sm="6" md="4" lg="2">
               <div className="feature-card p-3 h-100">
                 <div className="feature-icon mb-2" style={{ fontSize: "2rem" }}>
-                  💳
+                  <FaCreditCard color="green" />
                 </div>
                 <h6 className="fw-bold">Secure Payments</h6>
                 <p className="text-muted" style={{ fontSize: "0.85rem" }}>
@@ -578,7 +608,7 @@ function Home() {
             <Col xs="12" sm="6" md="4" lg="2">
               <div className="feature-card p-3 h-100">
                 <div className="feature-icon mb-2" style={{ fontSize: "2rem" }}>
-                  🕒
+                  <FaClock color="green" />
                 </div>
                 <h6 className="fw-bold">24/7 Support</h6>
                 <p className="text-muted" style={{ fontSize: "0.85rem" }}>
@@ -591,7 +621,7 @@ function Home() {
             <Col xs="12" sm="6" md="4" lg="2">
               <div className="feature-card p-3 h-100">
                 <div className="feature-icon mb-2" style={{ fontSize: "2rem" }}>
-                  💰
+                  <FaMoneyBillWave color="green" />
                 </div>
                 <h6 className="fw-bold">Best Prices</h6>
                 <p className="text-muted" style={{ fontSize: "0.85rem" }}>
@@ -604,7 +634,7 @@ function Home() {
             <Col xs="12" sm="6" md="4" lg="2">
               <div className="feature-card p-3 h-100">
                 <div className="feature-icon mb-2" style={{ fontSize: "2rem" }}>
-                  🏆
+                  <FaTrophy color="green" />
                 </div>
                 <h6 className="fw-bold">Quality Assurance</h6>
                 <p className="text-muted" style={{ fontSize: "0.85rem" }}>
@@ -618,7 +648,7 @@ function Home() {
             <Col xs="12" sm="6" md="4" lg="2">
               <div className="feature-card p-3 h-100">
                 <div className="feature-icon mb-2" style={{ fontSize: "2rem" }}>
-                  📲
+                  <FaMobileAlt color="green" />
                 </div>
                 <h6 className="fw-bold">Easy Booking</h6>
                 <p className="text-muted" style={{ fontSize: "0.85rem" }}>

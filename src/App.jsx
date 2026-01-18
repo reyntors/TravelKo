@@ -17,6 +17,7 @@ import CoordinatorDashboard from "./pages/coordinator/Dashboard";
 import CoordinatorTours from "./pages/coordinator/Tours";
 import CoordinatorBookings from "./pages/coordinator/Bookings";
 import CoordinatorProfile from "./pages/coordinator/Profile";
+import CoordinatorPortal from "./pages/CoordinatorPortal";
 
 function App() {
   return (
@@ -94,6 +95,19 @@ function App() {
             <Navbar />
             <main style={{ paddingTop: "80px" }}>
               <TourDetails />
+            </main>
+            <Footer />
+          </>
+        }
+      />
+
+      <Route
+        path="/coordinator/register"
+        element={
+          <>
+            <Navbar />
+            <main style={{ paddingTop: "80px" }}>
+              <CoordinatorPortal />
             </main>
             <Footer />
           </>

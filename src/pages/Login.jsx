@@ -11,7 +11,7 @@ import {
   Input,
   Button,
   FormText,
-  Alert
+  Alert,
 } from "reactstrap";
 import { useNavigate } from "react-router-dom";
 
@@ -37,10 +37,7 @@ const LoginPage = () => {
 
     // ⏳ simulate API delay
     setTimeout(() => {
-      if (
-        username === DEMO_USER.username &&
-        password === DEMO_USER.password
-      ) {
+      if (username === DEMO_USER.username && password === DEMO_USER.password) {
         localStorage.setItem("token", "demo-token-123");
 
         if (rememberMe) {
@@ -91,7 +88,7 @@ const LoginPage = () => {
                 <p className="text-muted mb-0">
                   Or{" "}
                   <a
-                    href="/register"
+                    href="coordinator/register"
                     style={{
                       color: "#16A34A",
                       textDecoration: "none",
@@ -102,8 +99,6 @@ const LoginPage = () => {
                   </a>
                 </p>
               </div>
-
-              
 
               {/* ERROR */}
               {error && (
@@ -191,7 +186,8 @@ const LoginPage = () => {
                   and{" "}
                   <a href="/privacy" style={{ color: "#16A34A" }}>
                     Privacy Policy
-                  </a>.
+                  </a>
+                  .
                 </FormText>
 
                 {/* RECAPTCHA */}
