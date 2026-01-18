@@ -14,7 +14,7 @@ import {
   CardBody,
   CardTitle,
 } from "reactstrap";
-import { FaStar } from "react-icons/fa";
+import { FaShareAlt, FaStar } from "react-icons/fa";
 import { FaRegCopy } from "react-icons/fa";
 
 import tour1 from "../assets/tour1.jpg";
@@ -531,20 +531,21 @@ export default function Tours() {
                     {/* Copy link button */}
                     <Button
                       type="button"
-                      color="light"
+                      color="white"
                       onClick={() => copyTourLink(tour)}
                       style={{
                         position: "absolute",
                         top: 10,
                         right: 10,
-                        borderRadius: 999,
+                        borderRadius: 10,
                         padding: "8px 10px",
                         border: "none",
-                        opacity: 0.95,
+                        opacity: 0.6,
+                        background: "#dddddd54",
                       }}
                       title="Copy link"
                     >
-                      <FaRegCopy />
+                      <FaShareAlt />
                     </Button>
 
                     {/* Title overlay */}
