@@ -18,6 +18,7 @@ import {
 import { useState, useRef, useEffect } from "react";
 import { Swiper, SwiperSlide } from "swiper/react";
 import "swiper/css";
+import heroVideo from "../assets/heroVideo.mp4";
 
 import {
   FaStar,
@@ -134,49 +135,137 @@ function Home() {
 
   return (
     <>
-      {/* HERO SECTION */}
-      <section className="hero" style={{ backgroundImage: `url(${hero})` }}>
-        <div className="hero-overlay p-3 text-center">
+      {/* HERO SECTION with VIDEO BACKGROUND */}
+ <section
+      style={{
+        position: "relative",
+        // ✅ prevents super tall hero on wide screens
+        height: "clamp(420px, 70vh, 620px)",
+        width: "100%",
+        overflow: "hidden",
+        borderRadius: 0,
+      }}
+    >
+      {/* Background Video */}
+      <video
+        autoPlay
+        muted
+        loop
+        playsInline
+        preload="metadata"
+        style={{
+          position: "absolute",
+          inset: 0,
+          width: "100%",
+          height: "100%",
+          objectFit: "cover",
+          zIndex: 0,
+        }}
+      >
+        <source src={heroVideo} type="video/mp4" />
+      </video>
+
+      {/* Dark Overlay */}
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          background: "rgba(0, 0, 0, 0.34)",
+          zIndex: 1,
+        }}
+      />
+
+      {/* Content */}
+      <Container
+        style={{
+          position: "relative",
+          zIndex: 2,
+          height: "100%",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          paddingLeft: 16,
+          paddingRight: 16,
+        }}
+      >
+        <div
+          style={{
+            textAlign: "center",
+            width: "100%",
+            maxWidth: 820, // ✅ prevents too wide layout on big screens
+          }}
+        >
           <h1
             style={{
               fontFamily: "Poppins",
-              fontWeight: 600,
-              fontSize: "2.5rem",
-              color: "white",
+              fontWeight: 700,
+              fontSize: "clamp(1.8rem, 3.2vw, 3rem)",
+              color: "#fff",
+              lineHeight: 1.15,
+              marginBottom: 18,
             }}
           >
             Discover Your Next <br />
             <span style={{ color: "#00ff5e" }}>Adventure</span> with{" "}
-            <span className="brand">TravelKo</span>
+            <span style={{ fontFamily: "Pacifico", fontWeight: 400 }}>
+              TravelKo
+            </span>
           </h1>
 
-          <div className="d-flex flex-column flex-md-row justify-content-center align-items-stretch align-items-md-center gap-3 mt-4">
-            <NavLink
-              to="/tours"
-              className="d-block d-md-inline-block w-100 w-md-auto"
-            >
+          {/* Buttons */}
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 12,
+              alignItems: "stretch",
+              justifyContent: "center",
+              marginTop: 12,
+            }}
+            className="flex-md-row align-items-md-center justify-content-md-center"
+          >
+            {/* Explore */}
+            <NavLink to="/tours" style={{ textDecoration: "none" }}>
               <Button
                 color="success"
-                className="w-100 w-md-auto px-5 rounded-pill text-nowrap"
+                style={{
+                  width: "100%",
+                  maxWidth: 420, // ✅ stops huge button on large screens
+                  padding: "12px 28px",
+                  borderRadius: 999,
+                  fontWeight: 700,
+                  whiteSpace: "nowrap", // ✅ no “Explore” on top / “Tours” below
+                }}
+                className="w-100"
               >
                 Explore Tours
               </Button>
             </NavLink>
-            <NavLink
-              to="/about"
-              className="d-block d-md-inline-block w-100 w-md-auto"
-            >
+
+            {/* Learn More */}
+            <NavLink to="/about" style={{ textDecoration: "none" }}>
               <Button
                 outline
                 color="light"
-                className="w-100 w-md-auto px-5 rounded-pill text-nowrap"
+                style={{
+                  width: "100%",
+                  maxWidth: 420,
+                  padding: "12px 28px",
+                  borderRadius: 999,
+                  fontWeight: 700,
+                  whiteSpace: "nowrap",
+                }}
+                className="w-100"
               >
                 Learn More
               </Button>
             </NavLink>
           </div>
         </div>
-      </section>
+      </Container>
+    </section>
+
+      
       <section className="section" style={{ fontFamily: "Poppins" }}>
         <Container>
           <Row className="text-center mb-5">
