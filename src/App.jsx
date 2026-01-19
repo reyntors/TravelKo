@@ -10,6 +10,7 @@ import About from "./pages/About";
 import Login from "./pages/Login";
 import BookAdventure from "./pages/BookAdventure";
 import TourDetails from "./pages/TourDetails";
+import BookPrivateTour from "./pages/BookPrivateTour";
 
 // Coordinator pages
 import CoordinatorLayout from "./pages/coordinator/CoordinatorLayout";
@@ -95,6 +96,18 @@ function App() {
             <Navbar />
             <main style={{ paddingTop: "80px" }}>
               <TourDetails />
+            </main>
+            <Footer />
+          </>
+        }
+      />
+       <Route
+        path="/tours/book-private"
+        element={
+          <>
+            <Navbar />
+            <main style={{ paddingTop: "80px" }}>
+              <BookPrivateTour/>
             </main>
             <Footer />
           </>

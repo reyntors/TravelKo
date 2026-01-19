@@ -206,10 +206,11 @@ function Home() {
                       <FaClock /> {tour.duration} <FaStar /> {tour.rating} (
                       {tour.reviews})
                     </p>
-
+                        <NavLink to="/tours/book-private" style={{ textDecoration: "none" }}>
                     <p className="text-success mb-3">
                       Book a Private Tour &gt;&gt;
                     </p>
+                    </NavLink>
 
                     <div className="d-flex justify-content-between align-items-center">
                       <h5 className="text-success fw-bold mb-0">

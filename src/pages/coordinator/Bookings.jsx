@@ -194,7 +194,7 @@ export default function Bookings() {
                   <span style={{ textTransform: "capitalize" }}>{filter}</span>
                 </DropdownToggle>
 
-                <DropdownMenu end style={{ zIndex: 1300 }}>
+                <DropdownMenu end style={{ zIndex: 1300}}>
                   <DropdownItem onClick={() => setFilter("all")}>
                     All bookings
                   </DropdownItem>
@@ -215,7 +215,7 @@ export default function Bookings() {
       </Card>
 
       {/* Desktop table (hidden on mobile) */}
-      <div className="d-none d-md-block ">
+      <div className="d-none d-md-block mt-5">
         <Card style={headerCardStyle}>
           <CardBody style={{ padding: 0 }}>
             <Table responsive hover className="mb-0" style={{ margin: 0 }}>

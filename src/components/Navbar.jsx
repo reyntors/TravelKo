@@ -36,7 +36,7 @@ function AppNavbar() {
   }}/>
 
       <Collapse isOpen={isOpen} navbar>
-        <Nav className="ms-auto align-items-center gap-2" navbar>
+        <Nav className="ms-auto align-items-center gap-2" navbar style={{fontFamily:"Poppins"}}>
           <NavItem>
             <NavLink className="nav-link" to="/" end>
               Home
