@@ -13,7 +13,7 @@ import {
   FormText,
   Alert,
 } from "reactstrap";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, NavLink } from "react-router-dom";
 
 const LoginPage = () => {
   const navigate = useNavigate();
@@ -85,18 +85,13 @@ const LoginPage = () => {
               {/* HEADER */}
               <div className="text-center mb-4">
                 <h3 className="mb-2">Sign in to your account</h3>
-                <p className="text-muted mb-0">
+                <p className="text-muted mb-0" >
                   Or{" "}
-                  <a
-                    href="coordinator/register"
-                    style={{
-                      color: "#16A34A",
-                      textDecoration: "none",
-                      fontWeight: "500",
-                    }}
-                  >
+                   <NavLink to="/coordinator/register" style={{ textDecoration: "none", color:"#16A34A", fontWeight: 600}}>
+                  
                     Become a coordinator
-                  </a>
+                  
+                  </NavLink>
                 </p>
               </div>
 
