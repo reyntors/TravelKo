@@ -136,136 +136,140 @@ function Home() {
   return (
     <>
       {/* HERO SECTION with VIDEO BACKGROUND */}
- <section
-      style={{
-        position: "relative",
-        // ✅ prevents super tall hero on wide screens
-        height: "clamp(420px, 70vh, 620px)",
-        width: "100%",
-        overflow: "hidden",
-        borderRadius: 0,
-      }}
-    >
-      {/* Background Video */}
-      <video
-        autoPlay
-        muted
-        loop
-        playsInline
-        preload="metadata"
-        style={{
-          position: "absolute",
-          inset: 0,
-          width: "100%",
-          height: "100%",
-          objectFit: "cover",
-          zIndex: 0,
-        }}
-      >
-        <source src={heroVideo} type="video/mp4" />
-      </video>
-
-      {/* Dark Overlay */}
-      <div
-        style={{
-          position: "absolute",
-          inset: 0,
-          background: "rgba(0, 0, 0, 0.34)",
-          zIndex: 1,
-        }}
-      />
-
-      {/* Content */}
-      <Container
+      <section
         style={{
           position: "relative",
-          zIndex: 2,
-          height: "100%",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          paddingLeft: 16,
-          paddingRight: 16,
+          // ✅ prevents super tall hero on wide screens
+          height: "clamp(420px, 70vh, 620px)",
+          width: "100%",
+          overflow: "hidden",
+          borderRadius: 0,
         }}
       >
-        <div
+        {/* Background Video */}
+        <video
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="metadata"
           style={{
-            textAlign: "center",
+            position: "absolute",
+            inset: 0,
             width: "100%",
-            maxWidth: 820, // ✅ prevents too wide layout on big screens
+            height: "100%",
+            objectFit: "cover",
+            zIndex: 0,
           }}
         >
-          <h1
-            style={{
-              fontFamily: "Poppins",
-              fontWeight: 700,
-              fontSize: "clamp(1.8rem, 3.2vw, 3rem)",
-              color: "#fff",
-              lineHeight: 1.15,
-              marginBottom: 18,
-            }}
-          >
-            Discover Your Next <br />
-            <span style={{ color: "#00ff5e" }}>Adventure</span> with{" "}
-            <span style={{ fontFamily: "Pacifico", fontWeight: 400 }}>
-              TravelKo
-            </span>
-          </h1>
+          <source src={heroVideo} type="video/mp4" />
+        </video>
 
-          {/* Buttons */}
+        {/* Dark Overlay */}
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            background: "rgba(0, 0, 0, 0.34)",
+            zIndex: 1,
+          }}
+        />
+
+        {/* Content */}
+        <Container
+          style={{
+            position: "relative",
+            zIndex: 2,
+            height: "100%",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            paddingLeft: 16,
+            paddingRight: 16,
+          }}
+        >
           <div
             style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: 12,
-              alignItems: "stretch",
-              justifyContent: "center",
-              marginTop: 12,
+              textAlign: "center",
+              width: "100%",
+              maxWidth: 820, // ✅ prevents too wide layout on big screens
             }}
-            className="flex-md-row align-items-md-center justify-content-md-center"
           >
-            {/* Explore */}
-            <NavLink to="/tours" style={{ textDecoration: "none" }}>
-              <Button
-                color="success"
+            <h1
+              style={{
+                fontFamily: "Poppins",
+                fontWeight: 700,
+                fontSize: "clamp(1.8rem, 3.2vw, 3rem)",
+                color: "#fff",
+                lineHeight: 1.15,
+                marginBottom: 18,
+              }}
+            >
+              Discover Your Next <br />
+              <span style={{ color: "#00ff5e" }}>Adventure</span> with{" "}
+              <span
                 style={{
-                  width: "100%",
-                  maxWidth: 420, // ✅ stops huge button on large screens
-                  padding: "12px 28px",
-                  borderRadius: 999,
-                  fontWeight: 700,
-                  whiteSpace: "nowrap", // ✅ no “Explore” on top / “Tours” below
+                  fontFamily: "Pacifico",
+                  fontWeight: 400,
+                  color: "#00ff5e",
                 }}
-                className="w-100"
               >
-                Explore Tours
-              </Button>
-            </NavLink>
+                TravelKo
+              </span>
+            </h1>
 
-            {/* Learn More */}
-            <NavLink to="/about" style={{ textDecoration: "none" }}>
-              <Button
-                outline
-                color="light"
-                style={{
-                  width: "100%",
-                  maxWidth: 420,
-                  padding: "12px 28px",
-                  borderRadius: 999,
-                  fontWeight: 700,
-                  whiteSpace: "nowrap",
-                }}
-                className="w-100"
-              >
-                Learn More
-              </Button>
-            </NavLink>
+            {/* Buttons */}
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: 12,
+                alignItems: "stretch",
+                justifyContent: "center",
+                marginTop: 12,
+              }}
+              className="flex-md-row align-items-md-center justify-content-md-center"
+            >
+              {/* Explore */}
+              <NavLink to="/tours" style={{ textDecoration: "none" }}>
+                <Button
+                  color="success"
+                  style={{
+                    width: "100%",
+                    maxWidth: 420, // ✅ stops huge button on large screens
+                    padding: "12px 28px",
+                    borderRadius: 999,
+                    fontWeight: 700,
+                    whiteSpace: "nowrap", // ✅ no “Explore” on top / “Tours” below
+                  }}
+                  className="w-100"
+                >
+                  Explore Tours
+                </Button>
+              </NavLink>
+
+              {/* Learn More */}
+              <NavLink to="/about" style={{ textDecoration: "none" }}>
+                <Button
+                  outline
+                  color="light"
+                  style={{
+                    width: "100%",
+                    maxWidth: 420,
+                    padding: "12px 28px",
+                    borderRadius: 999,
+                    fontWeight: 700,
+                    whiteSpace: "nowrap",
+                  }}
+                  className="w-100"
+                >
+                  Learn More
+                </Button>
+              </NavLink>
+            </div>
           </div>
-        </div>
-      </Container>
-    </section>
-
-      
+        </Container>
+      </section>
       <section className="section" style={{ fontFamily: "Poppins" }}>
         <Container>
           <Row className="text-center mb-5">
@@ -295,10 +299,13 @@ function Home() {
                       <FaClock /> {tour.duration} <FaStar /> {tour.rating} (
                       {tour.reviews})
                     </p>
-                        <NavLink to="/tours/book-private" style={{ textDecoration: "none" }}>
-                    <p className="text-success mb-3">
-                      Book a Private Tour &gt;&gt;
-                    </p>
+                    <NavLink
+                      to="/tours/book-private"
+                      style={{ textDecoration: "none" }}
+                    >
+                      <p className="text-success mb-3">
+                        Book a Private Tour &gt;&gt;
+                      </p>
                     </NavLink>
 
                     <div className="d-flex justify-content-between align-items-center">

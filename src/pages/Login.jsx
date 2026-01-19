@@ -15,42 +15,86 @@ import {
 } from "reactstrap";
 import { useNavigate, NavLink } from "react-router-dom";
 
+const API_BASE =
+  import.meta.env.VITE_API_BASE_URL || "http://68.183.237.72:3001/";
+
 const LoginPage = () => {
   const navigate = useNavigate();
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // 🔐 DEMO ACCOUNT
-  const DEMO_USER = {
-    username: "admin",
-    password: "admin123",
-  };
-
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
     setLoading(true);
 
-    // ⏳ simulate API delay
-    setTimeout(() => {
-      if (username === DEMO_USER.username && password === DEMO_USER.password) {
-        localStorage.setItem("token", "demo-token-123");
+    try {
+      const res = await fetch(`${API_BASE}auth/admin/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        // ✅ adjust keys if your backend expects "email" instead of "username"
+        body: JSON.stringify({
+          username,
+          password,
+        }),
+      });
 
-        if (rememberMe) {
-          localStorage.setItem("rememberMe", "true");
-        }
-
-        navigate("/coordinator/dashboard"); // ✅ React Router navigation
-      } else {
-        setError("Invalid username or password");
+      // Try to read JSON even on error so you can show backend message
+      let data = null;
+      try {
+        data = await res.json();
+      } catch {
+        data = null;
       }
 
+      if (!res.ok) {
+        const msg =
+          data?.message || data?.error || `Login failed (HTTP ${res.status})`;
+        throw new Error(msg);
+      }
+
+      // ✅ token field name varies by backend:
+      // common: data.token, data.accessToken, data.data.token, etc.
+      const token =
+        data?.token ||
+        data?.accessToken ||
+        data?.data?.token ||
+        data?.data?.accessToken;
+
+      if (!token) {
+        throw new Error("Login succeeded but token was not returned by API.");
+      }
+
+      // Save token (and optionally profile)
+      localStorage.setItem("auth_token", token);
+
+      // if backend returns user/admin info, keep it (optional)
+      if (data?.user || data?.admin || data?.data?.user) {
+        localStorage.setItem(
+          "auth_user",
+          JSON.stringify(data.user || data.admin || data.data?.user),
+        );
+      }
+
+      // Remember me behavior
+      if (rememberMe) localStorage.setItem("rememberMe", "true");
+      else localStorage.removeItem("rememberMe");
+
+      // ✅ go to coordinator dashboard
+      navigate("/coordinator/dashboard", { replace: true });
+    } catch (err) {
+      setError(err?.message || "Something went wrong. Please try again.");
+    } finally {
       setLoading(false);
-    }, 1000);
+    }
   };
 
   return (
@@ -85,12 +129,17 @@ const LoginPage = () => {
               {/* HEADER */}
               <div className="text-center mb-4">
                 <h3 className="mb-2">Sign in to your account</h3>
-                <p className="text-muted mb-0" >
+                <p className="text-muted mb-0">
                   Or{" "}
-                   <NavLink to="/coordinator/register" style={{ textDecoration: "none", color:"#16A34A", fontWeight: 600}}>
-                  
+                  <NavLink
+                    to="/coordinator/register"
+                    style={{
+                      textDecoration: "none",
+                      color: "#16A34A",
+                      fontWeight: 600,
+                    }}
+                  >
                     Become a coordinator
-                  
                   </NavLink>
                 </p>
               </div>
