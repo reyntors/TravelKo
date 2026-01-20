@@ -34,23 +34,28 @@ const LoginPage = () => {
     setLoading(true);
 
     try {
-      const res = await fetch(`${API_BASE}auth/admin/login`, {
+      
+      const res = await fetch(`${API_BASE}auth/coordinator/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Accept: "application/json",
         },
-        // ✅ adjust keys if your backend expects "email" instead of "username"
+     
         body: JSON.stringify({
           username,
           password,
+          
         }),
       });
 
-      // Try to read JSON even on error so you can show backend message
+     
+
+   
       let data = null;
       try {
         data = await res.json();
+        console.log(data)
       } catch {
         data = null;
       }
@@ -61,8 +66,7 @@ const LoginPage = () => {
         throw new Error(msg);
       }
 
-      // ✅ token field name varies by backend:
-      // common: data.token, data.accessToken, data.data.token, etc.
+      
       const token =
         data?.token ||
         data?.accessToken ||
@@ -75,6 +79,8 @@ const LoginPage = () => {
 
       // Save token (and optionally profile)
       localStorage.setItem("auth_token", token);
+
+
 
       // if backend returns user/admin info, keep it (optional)
       if (data?.user || data?.admin || data?.data?.user) {

@@ -1,4 +1,5 @@
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
@@ -23,7 +24,7 @@ import CoordinatorPortal from "./pages/CoordinatorPortal";
 function App() {
   return (
     <Routes>
-      {/* ✅ PUBLIC WEBSITE (with Navbar + Footer) */}
+      {/* ================= PUBLIC WEBSITE ================= */}
       <Route
         path="/"
         element={
@@ -64,19 +65,6 @@ function App() {
       />
 
       <Route
-        path="/login"
-        element={
-          <>
-            <Navbar />
-            <main style={{ paddingTop: "80px" }}>
-              <Login />
-            </main>
-            <Footer />
-          </>
-        }
-      />
-
-      <Route
         path="/book"
         element={
           <>
@@ -101,13 +89,14 @@ function App() {
           </>
         }
       />
-       <Route
+
+      <Route
         path="/tours/book-private"
         element={
           <>
             <Navbar />
             <main style={{ paddingTop: "80px" }}>
-              <BookPrivateTour/>
+              <BookPrivateTour />
             </main>
             <Footer />
           </>
@@ -127,42 +116,60 @@ function App() {
         }
       />
 
-      {/* ✅ COORDINATOR DASHBOARD (no public navbar/footer) */}
       <Route
-        path="/coordinator/dashboard"
+        path="/login"
         element={
-          <CoordinatorLayout>
-            <CoordinatorDashboard />
-          </CoordinatorLayout>
+          <>
+            <Navbar />
+            <main style={{ paddingTop: "80px" }}>
+              <Login />
+            </main>
+            <Footer />
+          </>
         }
       />
 
-      <Route
-        path="/coordinator/tours"
-        element={
-          <CoordinatorLayout>
-            <CoordinatorTours />
-          </CoordinatorLayout>
-        }
-      />
+      {/* ================= PROTECTED COORDINATOR AREA ================= */}
+      <Route element={<ProtectedRoute />}>
+        <Route
+          path="/coordinator/dashboard"
+          element={
+            <CoordinatorLayout>
+              <CoordinatorDashboard />
+            </CoordinatorLayout>
+          }
+        />
 
-      <Route
-        path="/coordinator/bookings"
-        element={
-          <CoordinatorLayout>
-            <CoordinatorBookings />
-          </CoordinatorLayout>
-        }
-      />
+        <Route
+          path="/coordinator/tours"
+          element={
+            <CoordinatorLayout>
+              <CoordinatorTours />
+            </CoordinatorLayout>
+          }
+        />
 
-      <Route
-        path="/coordinator/profile"
-        element={
-          <CoordinatorLayout>
-            <CoordinatorProfile />
-          </CoordinatorLayout>
-        }
-      />
+        <Route
+          path="/coordinator/bookings"
+          element={
+            <CoordinatorLayout>
+              <CoordinatorBookings />
+            </CoordinatorLayout>
+          }
+        />
+
+        <Route
+          path="/coordinator/profile"
+          element={
+            <CoordinatorLayout>
+              <CoordinatorProfile />
+            </CoordinatorLayout>
+          }
+        />
+      </Route>
+
+      {/* ================= FALLBACK ================= */}
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }

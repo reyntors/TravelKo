@@ -29,7 +29,7 @@ export default function CoordinatorNav() {
   const toggleCollapsed = () => setCollapsed((v) => !v);
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
+    localStorage.removeItem("auth_token");
     localStorage.removeItem("rememberMe");
     navigate("/login");
   };
