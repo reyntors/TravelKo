@@ -260,19 +260,6 @@ export default function Profile() {
 
               <Col xs="12" md="6">
                 <FormGroup>
-                  <Label>Last Name</Label>
-                  <Input
-                    value={profile.lastName}
-                    onChange={onChange("lastName")}
-                    disabled={!isEditing}
-                    style={!isEditing ? disabledInputStyle : enabledInputStyle}
-                    placeholder="Last name"
-                  />
-                </FormGroup>
-              </Col>
-
-              <Col xs="12" md="6">
-                <FormGroup>
                   <Label>Email Address</Label>
                   <Input
                     type="email"

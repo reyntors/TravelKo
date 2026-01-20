@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Container,
   Card,
@@ -10,9 +11,10 @@ import {
   Input,
 } from "reactstrap";
 import { FaUserCog } from "react-icons/fa";
-// import axios from "axios"; // ← enable when backend is ready
+import axios from "axios";
 
 export default function CoordinatorPortal() {
+  const navigate = useNavigate();
   const green = "#16A34A";
   const border = "#E5E7EB";
   const text = "#111827";
@@ -24,11 +26,13 @@ export default function CoordinatorPortal() {
     username: "",
     email: "",
     gender: "",
-    contact: "",
+    phoneNumber: "",
     password: "",
     confirmPassword: "",
   });
 
+  const API_BASE =
+    import.meta.env.VITE_API_BASE_URL || "https://api.travelko.site/";
 
   const [passwordError, setPasswordError] = useState("");
 
@@ -46,13 +50,11 @@ export default function CoordinatorPortal() {
     return errors;
   };
 
-  /* ================= INPUT HANDLER ================= */
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  /* ================= SUBMIT ================= */
   const handleRegister = async () => {
     const errors = validatePassword(form.password, form.confirmPassword);
     if (errors.length) {
@@ -60,34 +62,36 @@ export default function CoordinatorPortal() {
       return;
     }
 
-    // 🔥 BACKEND-READY PAYLOAD
     const payload = new FormData();
     payload.append("fullName", form.fullName);
     payload.append("username", form.username);
     payload.append("email", form.email);
     payload.append("gender", form.gender);
-    payload.append("contact", form.contact);
+    payload.append("phoneNumber", form.phoneNumber);
     payload.append("password", form.password);
 
-    if (validId) payload.append("validId", validId);
-    photos.forEach((file) => payload.append("photos", file));
-
-    // ✅ Ready for backend
     console.log("Submitting payload:");
     for (let pair of payload.entries()) {
       console.log(pair[0], pair[1]);
     }
 
-    /* === ENABLE WHEN BACKEND IS READY ===
-    await axios.post("/api/coordinator/register", payload, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
-    */
+    try {
+      const res = await axios.post(`${API_BASE}auth/coordinator`, payload, {
+        headers: { "Content-Type": "application/json" },
+      });
 
-    alert("Coordinator registration ready for backend 🚀");
+      console.log(res);
+
+      navigate("/login", { replace: true });
+    } catch (error) {
+      setPasswordError(
+        error?.response?.data?.message ||
+          error?.message ||
+          "Registration failed",
+      );
+    }
   };
 
-  /* ================= UI ================= */
   return (
     <div style={{ fontFamily: "Poppins", background: bg, minHeight: "100vh" }}>
       <Container fluid style={{ padding: 18, maxWidth: 540 }}>
@@ -103,12 +107,16 @@ export default function CoordinatorPortal() {
           <div style={{ fontSize: 22, fontWeight: 900 }}>
             Coordinator Registration
           </div>
-          <div style={{ marginTop: 6 }}>
-            Create your coordinator account
-          </div>
+          <div style={{ marginTop: 6 }}>Create your coordinator account</div>
         </div>
 
-        <Card style={{ marginTop: 16, borderRadius: 18, border: `1px solid ${border}` }}>
+        <Card
+          style={{
+            marginTop: 16,
+            borderRadius: 18,
+            border: `1px solid ${border}`,
+          }}
+        >
           <CardBody>
             <Form>
               {/* FULL NAME */}
@@ -162,10 +170,10 @@ export default function CoordinatorPortal() {
 
               {/* CONTACT */}
               <FormGroup>
-                <Label style={{ fontWeight: 800 }}>Contact *</Label>
+                <Label style={{ fontWeight: 800 }}>Contact Number *</Label>
                 <Input
-                  name="contact"
-                  value={form.contact}
+                  name="phoneNumber"
+                  value={form.phoneNumber}
                   onChange={handleChange}
                 />
               </FormGroup>
@@ -195,7 +203,7 @@ export default function CoordinatorPortal() {
                     handleChange(e);
                     const errors = validatePassword(
                       form.password,
-                      e.target.value
+                      e.target.value,
                     );
                     setPasswordError(errors.join(", "));
                   }}
@@ -206,8 +214,6 @@ export default function CoordinatorPortal() {
                   </div>
                 )}
               </FormGroup>
-
-            
 
               {/* SUBMIT */}
               <Button

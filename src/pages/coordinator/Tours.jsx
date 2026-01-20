@@ -87,7 +87,7 @@ export default function CoordinatorTours() {
         videos: [],
       },
     ],
-    []
+    [],
   );
 
   const [packages, setPackages] = useState(initialPackages);
@@ -125,7 +125,8 @@ export default function CoordinatorTours() {
       meetup: "",
       details: "",
       inclusion: "",
-      mapEmbedUrl: "https://www.google.com/maps?q=Mount%20Pinatubo&output=embed",
+      mapEmbedUrl:
+        "https://www.google.com/maps?q=Mount%20Pinatubo&output=embed",
       joinType: "Join a group",
       price: "",
       slots: "",
@@ -333,14 +334,20 @@ export default function CoordinatorTours() {
                       fontSize: 13,
                     }}
                   >
-                    <div style={{ color: muted, fontWeight: 700 }}>Duration:</div>
+                    <div style={{ color: muted, fontWeight: 700 }}>
+                      Duration:
+                    </div>
                     <div style={{ color: text }}>{pkg.duration}</div>
 
                     <div style={{ color: muted, fontWeight: 700 }}>Meetup:</div>
                     <div style={{ color: text }}>{pkg.meetup}</div>
 
-                    <div style={{ color: muted, fontWeight: 700 }}>Details:</div>
-                    <div style={{ color: text, lineHeight: 1.4 }}>{pkg.details}</div>
+                    <div style={{ color: muted, fontWeight: 700 }}>
+                      Details:
+                    </div>
+                    <div style={{ color: text, lineHeight: 1.4 }}>
+                      {pkg.details}
+                    </div>
                   </div>
                 </div>
 
@@ -354,7 +361,9 @@ export default function CoordinatorTours() {
                     fontSize: 13,
                   }}
                 >
-                  <div style={{ color: muted, fontWeight: 700 }}>{pkg.joinType}:</div>
+                  <div style={{ color: muted, fontWeight: 700 }}>
+                    {pkg.joinType}:
+                  </div>
 
                   <div style={{ color: text, fontWeight: 900 }}>
                     {formatPeso(pkg.price)}{" "}
@@ -517,7 +526,8 @@ export default function CoordinatorTours() {
                   placeholder="Paste Google maps embed URL (…output=embed)"
                 />
                 <div style={{ fontSize: 12, color: muted, marginTop: 6 }}>
-                  Tip: Use this format: https://www.google.com/maps?q=YOUR_PLACE&output=embed
+                  Tip: Use this format:
+                  https://www.google.com/maps?q=YOUR_PLACE&output=embed
                 </div>
               </div>
             </div>
@@ -588,7 +598,13 @@ export default function CoordinatorTours() {
                         fontSize: 13,
                       }}
                     >
-                      <div style={{ color: text, overflow: "hidden", textOverflow: "ellipsis" }}>
+                      <div
+                        style={{
+                          color: text,
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                        }}
+                      >
                         {file.name}
                       </div>
                       <Button
@@ -643,7 +659,13 @@ export default function CoordinatorTours() {
                         fontSize: 13,
                       }}
                     >
-                      <div style={{ color: text, overflow: "hidden", textOverflow: "ellipsis" }}>
+                      <div
+                        style={{
+                          color: text,
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                        }}
+                      >
                         {file.name}
                       </div>
                       <Button
@@ -668,7 +690,11 @@ export default function CoordinatorTours() {
               <Button
                 type="submit"
                 color="success"
-                style={{ backgroundColor: green, border: "none", fontWeight: 700 }}
+                style={{
+                  backgroundColor: green,
+                  border: "none",
+                  fontWeight: 700,
+                }}
               >
                 {mode === "add" ? "Create Package" : "Save Changes"}
               </Button>
