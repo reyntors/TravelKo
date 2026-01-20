@@ -25,7 +25,7 @@ export default function Profile() {
       borderRadius: 16,
       border: `1px solid ${border}`,
     }),
-    [border]
+    [border],
   );
 
   const sectionTitle = { fontWeight: 800, marginBottom: 12 };
@@ -54,7 +54,6 @@ export default function Profile() {
   // ✅ profile state (edit this shape to match backend)
   const [profile, setProfile] = useState({
     fullName: "",
-    lastName: "",
     email: "",
     phone: "",
     address: "",
@@ -62,17 +61,15 @@ export default function Profile() {
     accountName: "",
     accountNumber: "",
     gcashNumber: "",
+    gender: "",
   });
 
   // Keep a copy for cancel
   const [originalProfile, setOriginalProfile] = useState(null);
 
-
   const token = localStorage.getItem("auth_token");
 
-
-const API_BASE =
-  import.meta.env.VITE_API_BASE_URL;
+  const API_BASE = import.meta.env.VITE_API_BASE_URL;
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -83,7 +80,7 @@ const API_BASE =
       try {
         if (!token) throw new Error("Missing token. Please login again.");
 
-        const res = await fetch(`${API_BASE}auth/coordinator/coordinator`, {
+        const res = await fetch(`${API_BASE}auth/coordinator`, {
           method: "GET",
           headers: {
             Accept: "application/json",
@@ -92,7 +89,7 @@ const API_BASE =
         });
 
         const data = await res.json().catch(() => null);
-        console.log(data)
+        console.log(data);
 
         if (!res.ok) {
           throw new Error(data?.message || data?.error || `HTTP ${res.status}`);
@@ -101,8 +98,8 @@ const API_BASE =
         // ✅ Map backend response into your form fields
         // Adjust mapping based on backend keys
         const mapped = {
-          fullName: data?.fullName || data?.fullName|| "",
-          lastName: data?.lastName || data?.lastname || "",
+          fullName: data?.fullName || data?.fullName || "",
+          gender: data?.gender || data?.gender || "",
           email: data?.email || "",
           phoneNumber: data?.phoneNumber || data?.mobileNumber || "",
           address: data?.address || "",
@@ -150,7 +147,7 @@ const API_BASE =
     try {
       if (!token) throw new Error("Missing token. Please login again.");
 
-      const res = await fetch(`${API_BASE}auth/coordinator/coordinator`, {
+      const res = await fetch(`${API_BASE}auth/coordinator`, {
         method: "PUT", // or PATCH depending on backend
         headers: {
           "Content-Type": "application/json",
@@ -160,11 +157,7 @@ const API_BASE =
         body: JSON.stringify(profile),
       });
 
-      
-
       const data = await res.json().catch(() => null);
-
-      
 
       if (!res.ok) {
         throw new Error(data?.message || data?.error || `HTTP ${res.status}`);
@@ -190,8 +183,6 @@ const API_BASE =
       </Container>
     );
   }
-
-  
 
   return (
     <Container fluid style={{ fontFamily: "Poppins" }}>
@@ -266,7 +257,7 @@ const API_BASE =
                   />
                 </FormGroup>
               </Col>
-{/* 
+
               <Col xs="12" md="6">
                 <FormGroup>
                   <Label>Last Name</Label>
@@ -278,7 +269,7 @@ const API_BASE =
                     placeholder="Last name"
                   />
                 </FormGroup>
-              </Col> */}
+              </Col>
 
               <Col xs="12" md="6">
                 <FormGroup>

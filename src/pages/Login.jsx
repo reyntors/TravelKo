@@ -16,7 +16,9 @@ import {
 import { useNavigate, NavLink } from "react-router-dom";
 
 const API_BASE =
-  import.meta.env.VITE_API_BASE_URL || "http://68.183.237.72:3001/";
+  import.meta.env.VITE_API_BASE_URL || "https://api.travelko.site/";
+
+console.log(API_BASE);
 
 const LoginPage = () => {
   const navigate = useNavigate();
@@ -34,28 +36,22 @@ const LoginPage = () => {
     setLoading(true);
 
     try {
-      
       const res = await fetch(`${API_BASE}auth/coordinator/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Accept: "application/json",
         },
-     
+
         body: JSON.stringify({
           username,
           password,
-          
         }),
       });
 
-     
-
-   
       let data = null;
       try {
         data = await res.json();
-        console.log(data)
       } catch {
         data = null;
       }
@@ -66,7 +62,6 @@ const LoginPage = () => {
         throw new Error(msg);
       }
 
-      
       const token =
         data?.token ||
         data?.accessToken ||
@@ -77,12 +72,8 @@ const LoginPage = () => {
         throw new Error("Login succeeded but token was not returned by API.");
       }
 
-      // Save token (and optionally profile)
       localStorage.setItem("auth_token", token);
 
-
-
-      // if backend returns user/admin info, keep it (optional)
       if (data?.user || data?.admin || data?.data?.user) {
         localStorage.setItem(
           "auth_user",
