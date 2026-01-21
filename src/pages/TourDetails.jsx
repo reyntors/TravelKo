@@ -1,74 +1,92 @@
-import { useState } from "react";
-import {
-  Container,
-  Row,
-  Col,
-  Button,
-  Card,
-  CardBody,
-  Badge,
-} from "reactstrap";
+import { useEffect, useState } from "react";
+import { Container, Row, Col, Button, Card, CardBody, Badge } from "reactstrap";
 import {
   FaStar,
   FaMapMarkerAlt,
-  FaCheckCircle,
   FaChevronLeft,
   FaChevronRight,
   FaUser,
-  FaPhone
+  FaPhone,
 } from "react-icons/fa";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
+import axios from "axios";
 
-import tour1 from "../assets/tour1.jpg";
-import tour2 from "../assets/tour2.png";
-import tour3 from "../assets/tour3.jpg";
-
-
-const galleryImages = [tour1, tour2, tour3];
-
-
-const reviews = [
-  {
-    name: "Juan Dela Cruz",
-    date: "March 2026",
-    rating: 5,
-    comment: "Amazing experience! Well organized and safe.",
-  },
-  {
-    name: "Maria Santos",
-    date: "March 2026",
-    rating: 4,
-    comment: "Beautiful views and friendly guides.",
-  },
-  {
-    name: "Carlos Reyes",
-    date: "February 2026",
-    rating: 5,
-    comment: "Worth every peso. Highly recommended!",
-  },
-];
-
-function AdventureDetails() {
+export default function AdventureDetails() {
+  const { id } = useParams(); // 🔑 tour id
   const navigate = useNavigate();
+
+  const API_BASE =
+    import.meta.env.VITE_API_BASE_URL || "https://api.travelko.site/";
+
+  const [tour, setTour] = useState(null);
   const [imageIndex, setImageIndex] = useState(0);
-  const [reviewIndex, setReviewIndex] = useState(0);
+  const [loading, setLoading] = useState(true);
 
-  const nextImage = () =>
-    setImageIndex((prev) => (prev + 1) % galleryImages.length);
+  /* ================= DATE HELPERS ================= */
+  const parseAvailableDates = (availableDates) => {
+    if (!availableDates || !availableDates.length) return [];
+
+    let raw = availableDates[0];
+
+    if (typeof raw === "string") {
+      try {
+        raw = JSON.parse(raw);
+      } catch {
+        return [];
+      }
+    }
+
+    if (!Array.isArray(raw) || raw.length < 2) return [];
+
+    return [
+      {
+        start: new Date(raw[0]),
+        end: new Date(raw[raw.length - 1]),
+      },
+    ];
+  };
+
+  const formatDate = (date) =>
+    date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+
+  /* ================= FETCH TOUR ================= */
+  useEffect(() => {
+    const fetchTour = async () => {
+      try {
+        const res = await axios.get(`${API_BASE}tours/${id}`);
+        setTour(res.data);
+      } catch (err) {
+        console.error(err);
+        alert("Failed to load tour details");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTour();
+  }, [id]);
+
+  if (loading) return <div className="text-center my-5">Loading...</div>;
+  if (!tour) return <div className="text-center my-5">Tour not found</div>;
+
+  const gallery = tour.pictureUrls || [];
+  const dates = parseAvailableDates(tour.availableDates);
+
+  const nextImage = () => setImageIndex((prev) => (prev + 1) % gallery.length);
+
   const prevImage = () =>
-    setImageIndex(
-      (prev) => (prev - 1 + galleryImages.length) % galleryImages.length
-    );
-
-  const nextReview = () =>
-    setReviewIndex((prev) => (prev + 1) % reviews.length);
+    setImageIndex((prev) => (prev - 1 + gallery.length) % gallery.length);
 
   return (
     <>
       {/* HERO */}
       <div
         style={{
-          backgroundImage: `url(${galleryImages[0]})`,
+          backgroundImage: `url(${gallery[0]})`,
           backgroundSize: "cover",
           backgroundPosition: "center",
           padding: "120px 0",
@@ -77,16 +95,16 @@ function AdventureDetails() {
       >
         <Container>
           <Badge color="success" pill className="mb-2 px-3 py-2">
-            Mountain Climbing
+            {tour.category}
           </Badge>
-          <h1 className="fw-bold">Mount Pinatubo Crater Lake Trek</h1>
+          <h1 className="fw-bold">{tour.title}</h1>
 
           <div className="d-flex align-items-center gap-3 mt-2">
             <span>
-              <FaStar className="text-warning" /> 4.8 (124)
+              <FaStar className="text-warning" /> 4.8
             </span>
             <span>
-              <FaMapMarkerAlt /> Zambales, Philippines
+              <FaMapMarkerAlt /> {tour.address}
             </span>
           </div>
         </Container>
@@ -94,145 +112,59 @@ function AdventureDetails() {
 
       <Container className="my-5">
         {/* GALLERY */}
-        <Row className="mb-5">
-          <Col className="text-center position-relative">
-            <img
-              src={galleryImages[imageIndex]}
-              alt="Gallery"
-              className="img-fluid rounded shadow"
-              style={{ maxHeight: "400px", objectFit: "cover" }}
-            />
+        {gallery.length > 0 && (
+          <Row className="mb-5">
+            <Col className="text-center position-relative">
+              <img
+                src={gallery[imageIndex]}
+                alt="Gallery"
+                className="img-fluid rounded shadow"
+                style={{ maxHeight: 400, objectFit: "cover" }}
+              />
 
-            <Button
-              color="success"
-              className="position-absolute top-50 start-0 translate-middle-y"
-              onClick={prevImage}
-            >
-              <FaChevronLeft />
-            </Button>
+              {gallery.length > 1 && (
+                <>
+                  <Button
+                    color="success"
+                    className="position-absolute top-50 start-0 translate-middle-y"
+                    onClick={prevImage}
+                  >
+                    <FaChevronLeft />
+                  </Button>
 
-            <Button
-              color="success"
-              className="position-absolute top-50 end-0 translate-middle-y"
-              onClick={nextImage}
-            >
-              <FaChevronRight />
-            </Button>
-          </Col>
-        </Row>
+                  <Button
+                    color="success"
+                    className="position-absolute top-50 end-0 translate-middle-y"
+                    onClick={nextImage}
+                  >
+                    <FaChevronRight />
+                  </Button>
+                </>
+              )}
+            </Col>
+          </Row>
+        )}
 
         {/* ABOUT */}
         <Row className="mb-5">
           <Col>
             <h4 className="fw-bold">About this tour</h4>
-            <p>
-              Experience the breathtaking Mount Pinatubo Crater Lake trek.
-              Perfect for adventure seekers who want scenic views, fresh air,
-              and an unforgettable journey.
-            </p>
+            <p>{tour.details}</p>
           </Col>
         </Row>
 
         {/* ITINERARY */}
-<Row className="mb-5">
-  <Col>
-    <h4 className="fw-bold mb-4">Itinerary</h4>
-
-    {/* DAY 1 */}
-    <div className="d-flex align-items-start gap-3 mb-3">
-      <Badge color="success" pill className="px-3 py-2">
-        Day 1
-      </Badge>
-
-      <div>
-        <h6 className="fw-bold mb-1">Departure & Base Camp Arrival</h6>
-        <p className="text-muted mb-0">
-          Early departure from Manila, travel to the jump-off point,
-          arrival at base camp, registration, orientation, and trek briefing.
-        </p>
-      </div>
-    </div>
-
-    {/* DAY 2 */}
-    <div className="d-flex align-items-start gap-3 mb-3">
-      <Badge color="success" pill className="px-3 py-2">
-        Day 2
-      </Badge>
-
-      <div>
-        <h6 className="fw-bold mb-1">Summit Trek & Crater Exploration</h6>
-        <p className="text-muted mb-0">
-          Sunrise trek to the summit, exploration of the crater lake,
-          photography session, and return to camp for rest.
-        </p>
-      </div>
-    </div>
-
-    {/* DAY 3 */}
-    <div className="d-flex align-items-start gap-3">
-      <Badge color="success" pill className="px-3 py-2">
-        Day 3
-      </Badge>
-
-      <div>
-        <h6 className="fw-bold mb-1">Descent & Return to Manila</h6>
-        <p className="text-muted mb-0">
-          Break camp, descend to jump-off point, lunch stop,
-          and safe return trip to Manila.
-        </p>
-      </div>
-    </div>
-  </Col>
-</Row>
-
-
-        {/* REVIEWS */}
         <Row className="mb-5">
           <Col>
-            <div className="d-flex justify-content-between align-items-center">
-              <h4 className="fw-bold">Reviews & Comments</h4>
-              <Button color="success" size="sm">+ Leave a Review</Button>
-            </div>
-
-            <Card className="mt-3 shadow-sm">
-              <CardBody>
-                <h6 className="fw-bold mb-0">
-                  {reviews[reviewIndex].name}{" "}
-                  <FaCheckCircle className="text-success" size={14} />
-                </h6>
-                <small className="text-muted">
-                  {reviews[reviewIndex].date}
-                </small>
-
-                <div className="mt-1">
-                  {[...Array(reviews[reviewIndex].rating)].map((_, i) => (
-                    <FaStar key={i} className="text-warning" />
-                  ))}
-                </div>
-
-                <p className="mt-2">{reviews[reviewIndex].comment}</p>
-
-                {/* Dots */}
-                <div className="text-center mt-3">
-                  {reviews.map((_, i) => (
-                    <span
-                      key={i}
-                      onClick={() => setReviewIndex(i)}
-                      style={{
-                        display: "inline-block",
-                        width: "10px",
-                        height: "10px",
-                        margin: "0 5px",
-                        borderRadius: "50%",
-                        background:
-                          reviewIndex === i ? "#198754" : "#ccc",
-                        cursor: "pointer",
-                      }}
-                    />
-                  ))}
-                </div>
-              </CardBody>
-            </Card>
+            <h4 className="fw-bold mb-3">Itinerary</h4>
+            {tour.itinerary?.map((item, idx) => (
+              <div key={idx} className="mb-2">
+                <Badge color="success" pill className="me-2">
+                  Day {idx + 1}
+                </Badge>
+                {item}
+              </div>
+            ))}
           </Col>
         </Row>
 
@@ -245,78 +177,66 @@ function AdventureDetails() {
                 <span>
                   Join a group <br />
                   <small className="text-muted">
-                    May 7–10, 2026 | May 15–18, 2026
+                    {dates.length
+                      ? `${formatDate(dates[0].start)} – ${formatDate(
+                          dates[0].end,
+                        )}`
+                      : "—"}
                   </small>
                 </span>
-                <strong>15 slots available</strong>
+                <strong>{tour.joinerMaxSlots} slots available</strong>
               </CardBody>
             </Card>
           </Col>
         </Row>
 
-        {/* INCLUDED / THINGS TO BRING */}
+        {/* INCLUDED / THINGS */}
         <Row className="mb-5">
           <Col md="6">
             <h5 className="fw-bold">What’s included</h5>
             <ul>
-              <li>Transportation from Manila</li>
-              <li>Professional guide</li>
-              <li>Camping equipment</li>
-              <li>All meals</li>
-              <li>Safety gear & first aid kit</li>
+              {tour.packageInclusions?.map((i, idx) => (
+                <li key={idx}>{i}</li>
+              ))}
             </ul>
           </Col>
 
           <Col md="6">
-            <h5 className="fw-bold">Things to bring (optional)</h5>
+            <h5 className="fw-bold">Things to bring</h5>
             <ul>
-              <li>Clothes & shoes</li>
-              <li>Head light</li>
-              <li>Water & snacks</li>
-              <li>Personal medication</li>
-              <li>Trekking pole</li>
+              {tour.thingsToBring?.map((i, idx) => (
+                <li key={idx}>{i}</li>
+              ))}
             </ul>
           </Col>
         </Row>
 
         {/* COORDINATOR */}
-            <h4 className="fw-bold mb-2">Coordinator</h4>
-            <p className="mb-1">
-              <FaUser className="me-2" />  Adventure Pro Tours <br />
-             
-            </p>
-            <p className="mb-4">
-              <FaPhone className="me-2" /> 0912 345 6789
-            </p>
+        <h4 className="fw-bold mb-2">Coordinator</h4>
+        <p className="mb-1">
+          <FaUser className="me-2" /> {tour.coordinator?.fullName || "—"}
+        </p>
+        <p className="mb-4">
+          <FaPhone className="me-2" /> {tour.coordinator?.phoneNumber || "—"}
+        </p>
 
-            <p className="text-success mb-4">
-              Book a private tour &gt;&gt;
-            </p>
+        {/* ACTIONS */}
+        <div className="d-flex flex-column align-items-center gap-2 mt-4">
+          <Button color="success" size="lg" className="px-5 py-3 fw-bold">
+            Book Now!
+          </Button>
 
-           {/* ACTION BUTTONS */}
-<div className="d-flex flex-column align-items-center gap-2 mt-4">
-  <Button
-    color="success"
-    size="lg"
-    className="px-5 py-3 fw-bold"
-  >
-    Book Now!
-  </Button>
-
-  <Button
-    outline
-    color="secondary"
-    size="lg"
-    className="px-5 py-3"
-  >
-    Back to Tours
-  </Button>
-</div>
-
- 
+          <Button
+            outline
+            color="secondary"
+            size="lg"
+            className="px-5 py-3"
+            onClick={() => navigate("/tours")}
+          >
+            Back to Tours
+          </Button>
+        </div>
       </Container>
     </>
   );
 }
-
-export default AdventureDetails;
