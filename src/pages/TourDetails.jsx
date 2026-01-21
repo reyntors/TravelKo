@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import axios from "axios";
 import { Container, Row, Col, Button, Card, CardBody, Badge } from "reactstrap";
 import {
   FaStar,
@@ -8,60 +10,65 @@ import {
   FaUser,
   FaPhone,
 } from "react-icons/fa";
-import { useNavigate, useParams } from "react-router-dom";
-import axios from "axios";
+
+/* ================= HELPERS ================= */
+const normalizeArray = (value) => {
+  if (!value) return [];
+
+  // already an array
+  if (Array.isArray(value)) return value;
+
+  // JSON string
+  if (typeof value === "string") {
+    try {
+      const parsed = JSON.parse(value);
+      if (Array.isArray(parsed)) return parsed;
+    } catch {
+      // comma-separated fallback
+      return value
+        .split(",")
+        .map((v) => v.trim())
+        .filter(Boolean);
+    }
+  }
+
+  return [];
+};
+
+const formatRange = (range) =>
+  `${formatDate(range.start)} – ${formatDate(range.end)}`;
+
+/* ================= COMPONENT ================= */
 
 export default function AdventureDetails() {
-  const { id } = useParams(); // 🔑 tour id
+  const { id } = useParams();
   const navigate = useNavigate();
 
   const API_BASE =
     import.meta.env.VITE_API_BASE_URL || "https://api.travelko.site/";
 
   const [tour, setTour] = useState(null);
-  const [imageIndex, setImageIndex] = useState(0);
   const [loading, setLoading] = useState(true);
-
-  /* ================= DATE HELPERS ================= */
-  const parseAvailableDates = (availableDates) => {
-    if (!availableDates || !availableDates.length) return [];
-
-    let raw = availableDates[0];
-
-    if (typeof raw === "string") {
-      try {
-        raw = JSON.parse(raw);
-      } catch {
-        return [];
-      }
-    }
-
-    if (!Array.isArray(raw) || raw.length < 2) return [];
-
-    return [
-      {
-        start: new Date(raw[0]),
-        end: new Date(raw[raw.length - 1]),
-      },
-    ];
-  };
-
-  const formatDate = (date) =>
-    date.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    });
+  const [imageIndex, setImageIndex] = useState(0);
+  const [selectedDateIndex, setSelectedDateIndex] = useState(0);
 
   /* ================= FETCH TOUR ================= */
+
   useEffect(() => {
     const fetchTour = async () => {
       try {
         const res = await axios.get(`${API_BASE}tours/${id}`);
-        setTour(res.data);
+
+        const data = res.data;
+        console.log(data);
+        setTour({
+          ...data,
+          packageInclusions: normalizeArray(data.packageInclusions),
+          itinerary: normalizeArray(data.itinerary),
+          thingsToBring: normalizeArray(data.thingsToBring),
+        });
       } catch (err) {
-        console.error(err);
-        alert("Failed to load tour details");
+        console.error("Failed to load tour", err);
       } finally {
         setLoading(false);
       }
@@ -70,23 +77,30 @@ export default function AdventureDetails() {
     fetchTour();
   }, [id]);
 
-  if (loading) return <div className="text-center my-5">Loading...</div>;
-  if (!tour) return <div className="text-center my-5">Tour not found</div>;
+  if (loading) {
+    return <p className="text-center mt-5">Loading tour...</p>;
+  }
 
-  const gallery = tour.pictureUrls || [];
-  const dates = parseAvailableDates(tour.availableDates);
+  if (!tour) {
+    return <p className="text-center mt-5">Tour not found</p>;
+  }
 
-  const nextImage = () => setImageIndex((prev) => (prev + 1) % gallery.length);
+  const dateRanges = parseAvailableDates(tour.availableDates);
 
+  const images = tour.pictureUrls || [];
+
+  const nextImage = () => setImageIndex((p) => (p + 1) % images.length);
   const prevImage = () =>
-    setImageIndex((prev) => (prev - 1 + gallery.length) % gallery.length);
+    setImageIndex((p) => (p - 1 + images.length) % images.length);
+
+  /* ================= UI ================= */
 
   return (
     <>
-      {/* HERO */}
+      {/* ================= HERO ================= */}
       <div
         style={{
-          backgroundImage: `url(${gallery[0]})`,
+          backgroundImage: `url(${images[0]})`,
           backgroundSize: "cover",
           backgroundPosition: "center",
           padding: "120px 0",
@@ -97,11 +111,12 @@ export default function AdventureDetails() {
           <Badge color="success" pill className="mb-2 px-3 py-2">
             {tour.category}
           </Badge>
+
           <h1 className="fw-bold">{tour.title}</h1>
 
-          <div className="d-flex align-items-center gap-3 mt-2">
+          <div className="d-flex gap-3 mt-2">
             <span>
-              <FaStar className="text-warning" /> 4.8
+              <FaStar className="text-warning" /> 4.8 (124)
             </span>
             <span>
               <FaMapMarkerAlt /> {tour.address}
@@ -111,41 +126,40 @@ export default function AdventureDetails() {
       </div>
 
       <Container className="my-5">
-        {/* GALLERY */}
-        {gallery.length > 0 && (
-          <Row className="mb-5">
-            <Col className="text-center position-relative">
-              <img
-                src={gallery[imageIndex]}
-                alt="Gallery"
-                className="img-fluid rounded shadow"
-                style={{ maxHeight: 400, objectFit: "cover" }}
-              />
+        {/* ================= GALLERY ================= */}
+        <h4 className="fw-bold">Gallery</h4>
+        <Row className="mb-5">
+          <Col className="text-center position-relative">
+            <img
+              src={images[imageIndex]}
+              alt="Gallery"
+              className="img-fluid rounded shadow"
+              style={{ maxHeight: 300, objectFit: "cover" }}
+            />
 
-              {gallery.length > 1 && (
-                <>
-                  <Button
-                    color="success"
-                    className="position-absolute top-50 start-0 translate-middle-y"
-                    onClick={prevImage}
-                  >
-                    <FaChevronLeft />
-                  </Button>
+            {images.length > 1 && (
+              <>
+                <Button
+                  color="success"
+                  className="position-absolute top-50 start-0 translate-middle-y"
+                  onClick={prevImage}
+                >
+                  <FaChevronLeft />
+                </Button>
 
-                  <Button
-                    color="success"
-                    className="position-absolute top-50 end-0 translate-middle-y"
-                    onClick={nextImage}
-                  >
-                    <FaChevronRight />
-                  </Button>
-                </>
-              )}
-            </Col>
-          </Row>
-        )}
+                <Button
+                  color="success"
+                  className="position-absolute top-50 end-0 translate-middle-y"
+                  onClick={nextImage}
+                >
+                  <FaChevronRight />
+                </Button>
+              </>
+            )}
+          </Col>
+        </Row>
 
-        {/* ABOUT */}
+        {/* ================= ABOUT ================= */}
         <Row className="mb-5">
           <Col>
             <h4 className="fw-bold">About this tour</h4>
@@ -153,44 +167,89 @@ export default function AdventureDetails() {
           </Col>
         </Row>
 
-        {/* ITINERARY */}
+        {/* ================= ITINERARY ================= */}
         <Row className="mb-5">
           <Col>
             <h4 className="fw-bold mb-3">Itinerary</h4>
+
             {tour.itinerary?.map((item, idx) => (
-              <div key={idx} className="mb-2">
-                <Badge color="success" pill className="me-2">
+              <div key={idx} className="d-flex gap-3 mb-2">
+                <Badge color="success" pill>
                   Day {idx + 1}
                 </Badge>
-                {item}
+                <span>{item}</span>
               </div>
             ))}
           </Col>
         </Row>
 
-        {/* AVAILABLE DATES */}
+        {/* ================= REVIEWS ================= */}
         <Row className="mb-5">
           <Col>
-            <h4 className="fw-bold">Available Dates</h4>
-            <Card className="shadow-sm mt-3">
-              <CardBody className="d-flex justify-content-between">
-                <span>
-                  Join a group <br />
-                  <small className="text-muted">
-                    {dates.length
-                      ? `${formatDate(dates[0].start)} – ${formatDate(
-                          dates[0].end,
-                        )}`
-                      : "—"}
-                  </small>
-                </span>
-                <strong>{tour.joinerMaxSlots} slots available</strong>
+            <div className="d-flex justify-content-between align-items-center">
+              <h4 className="fw-bold">Reviews & Comments</h4>
+              <Button color="success" size="sm">
+                + Leave Review
+              </Button>
+            </div>
+
+            <Card className="mt-3 shadow-sm">
+              <CardBody>
+                <strong>Mary Grace Gallardo</strong>{" "}
+                <Badge color="success">Verified</Badge>
+                <div className="text-warning mt-1">
+                  <FaStar /> <FaStar /> <FaStar /> <FaStar /> <FaStar />
+                </div>
+                <p className="mt-2">
+                  Amazing experience! The coordinator was very professional.
+                </p>
               </CardBody>
             </Card>
           </Col>
         </Row>
 
-        {/* INCLUDED / THINGS */}
+        {/* ================= AVAILABLE DATES ================= */}
+        <Row className="mb-5">
+          <Col>
+            <h4 className="fw-bold">Available Dates</h4>
+
+            <Card className="mt-3">
+              <CardBody>
+                {dateRanges.length === 0 ? (
+                  <p className="text-muted">No available dates</p>
+                ) : (
+                  <>
+                    <label className="fw-semibold mb-2">
+                      Select your preferred date
+                    </label>
+
+                    <select
+                      className="form-select"
+                      value={selectedDateIndex}
+                      onChange={(e) =>
+                        setSelectedDateIndex(Number(e.target.value))
+                      }
+                    >
+                      {dateRanges.map((range, index) => (
+                        <option key={index} value={index}>
+                          {formatRange(range)}
+                        </option>
+                      ))}
+                    </select>
+
+                    <div className="mt-3 text-success fw-semibold">
+                      Selected:
+                      <br />
+                      {formatRange(dateRanges[selectedDateIndex])}
+                    </div>
+                  </>
+                )}
+              </CardBody>
+            </Card>
+          </Col>
+        </Row>
+
+        {/* ================= INCLUDED / BRING ================= */}
         <Row className="mb-5">
           <Col md="6">
             <h5 className="fw-bold">What’s included</h5>
@@ -202,7 +261,7 @@ export default function AdventureDetails() {
           </Col>
 
           <Col md="6">
-            <h5 className="fw-bold">Things to bring</h5>
+            <h5 className="fw-bold">Things to bring (Optional)</h5>
             <ul>
               {tour.thingsToBring?.map((i, idx) => (
                 <li key={idx}>{i}</li>
@@ -211,18 +270,36 @@ export default function AdventureDetails() {
           </Col>
         </Row>
 
-        {/* COORDINATOR */}
-        <h4 className="fw-bold mb-2">Coordinator</h4>
-        <p className="mb-1">
-          <FaUser className="me-2" /> {tour.coordinator?.fullName || "—"}
-        </p>
-        <p className="mb-4">
-          <FaPhone className="me-2" /> {tour.coordinator?.phoneNumber || "—"}
-        </p>
+        {/* ================= COORDINATOR ================= */}
+        <Row className="mb-4">
+          <Col>
+            <h4 className="fw-bold">Coordinator</h4>
+            <p className="mb-1">
+              <FaUser className="me-2" /> Adventure Pro Tours
+            </p>
+            <p>
+              <FaPhone className="me-2" /> +639 912 345 6789
+            </p>
 
-        {/* ACTIONS */}
-        <div className="d-flex flex-column align-items-center gap-2 mt-4">
-          <Button color="success" size="lg" className="px-5 py-3 fw-bold">
+            <p className="text-success">Book a Private Tour »</p>
+          </Col>
+        </Row>
+
+        {/* ================= ACTIONS ================= */}
+        <div className="d-flex flex-column align-items-center gap-2">
+          <Button
+            color="success"
+            size="lg"
+            className="px-5"
+            onClick={() =>
+              navigate("/book", {
+                state: {
+                  tourId: tour._id || tour.id,
+                  selectedDate: dateRanges[selectedDateIndex],
+                },
+              })
+            }
+          >
             Book Now!
           </Button>
 
@@ -230,7 +307,7 @@ export default function AdventureDetails() {
             outline
             color="secondary"
             size="lg"
-            className="px-5 py-3"
+            className="px-5"
             onClick={() => navigate("/tours")}
           >
             Back to Tours

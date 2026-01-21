@@ -132,15 +132,15 @@ export default function Tours() {
   /* ================= ACTIONS ================= */
 
   const openDetails = (tour) => {
-    navigate(`/tours/details/${tour._id}`);
+    navigate(`/tours/details/${tour.id}`);
   };
 
   const bookNow = (tour) => {
-    navigate("/book", { state: { tourId: tour._id } });
+    navigate("/book", { state: { tourId: tour.id } });
   };
 
   const copyTourLink = async (tour) => {
-    const url = `${window.location.origin}/tours/details/${tour._id}`;
+    const url = `${window.location.origin}/tours/${tour.id}`;
     try {
       await navigator.clipboard.writeText(url);
       alert("Link copied!");
@@ -340,7 +340,7 @@ export default function Tours() {
               const dates = parseAvailableDates(tour.availableDates);
 
               return (
-                <Col md="6" lg="4" key={tour._id || tour.id}>
+                <Col md="6" lg="4" key={tour.id}>
                   <Card
                     className="h-100 shadow-sm"
                     style={{ borderRadius: 16 }}

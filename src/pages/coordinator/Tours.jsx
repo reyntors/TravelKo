@@ -46,10 +46,11 @@ export default function CoordinatorTours() {
     address: "",
     details: "",
     packageInclusions: "",
-    itinerary: "",
+    itinerary: [[""]],
     thingsToBring: "",
     joinerPrice: "",
     joinerMaxSlots: "",
+    privateBookingPrice: 1500,
     pictures: [],
   });
 
@@ -103,10 +104,11 @@ export default function CoordinatorTours() {
       address: "",
       details: "",
       packageInclusions: "",
-      itinerary: "",
+      itinerary: [[""]],
       thingsToBring: "",
       joinerPrice: "",
       joinerMaxSlots: "",
+      privateBookingPrice: "",
       pictures: [],
     });
     setDateRange({ startDate: "", endDate: "" });
@@ -159,6 +161,34 @@ export default function CoordinatorTours() {
 
     setLoading(true);
 
+    // ✅ BUILD PAYLOAD FIRST (PLAIN OBJECT)
+    const payload = {
+      title: form.title,
+      category: form.category,
+      address: form.address,
+      details: form.details,
+
+      availableDates: [
+        [
+          toStartOfDayISO(dateRange.startDate),
+          toEndOfDayISO(dateRange.endDate),
+        ],
+      ],
+
+      meetupLocations: [form.address],
+      packageInclusions: form.packageInclusions.split(",").map((i) => i.trim()),
+
+      itinerary: form.itinerary,
+      thingsToBring: form.thingsToBring.split("\n").map((i) => i.trim()),
+
+      joinerPrice: Number(form.joinerPrice),
+      joinerMaxSlots: Number(form.joinerMaxSlots),
+    };
+
+    // ✅ CONSOLE WHAT WILL BE SENT
+    console.log("🚀 PAYLOAD TO BACKEND:");
+    console.log(JSON.stringify(payload, null, 2));
+
     const fd = new FormData();
 
     fd.append("title", form.title);
@@ -166,25 +196,20 @@ export default function CoordinatorTours() {
     fd.append("address", form.address);
     fd.append("details", form.details);
 
-    fd.append(
-      "availableDates",
-      JSON.stringify([
-        [
-          toStartOfDayISO(dateRange.startDate),
-          toEndOfDayISO(dateRange.endDate),
-        ],
-      ]),
-    );
+    const availableDates = [
+      [toStartOfDayISO(dateRange.startDate), toEndOfDayISO(dateRange.endDate)],
+    ];
+
+    availableDates.forEach((range) => {
+      fd.append("availableDates[]", JSON.stringify(range));
+    });
 
     fd.append("meetupLocations", JSON.stringify([form.address]));
     fd.append(
       "packageInclusions",
       JSON.stringify(form.packageInclusions.split(",").map((i) => i.trim())),
     );
-    fd.append(
-      "itinerary",
-      JSON.stringify(form.itinerary.split("\n").map((i) => i.trim())),
-    );
+    fd.append("itinerary", JSON.stringify(form.itinerary));
     fd.append(
       "thingsToBring",
       JSON.stringify(form.thingsToBring.split("\n").map((i) => i.trim())),
@@ -192,6 +217,7 @@ export default function CoordinatorTours() {
 
     fd.append("joinerPrice", Number(form.joinerPrice));
     fd.append("joinerMaxSlots", Number(form.joinerMaxSlots));
+    fd.append("privateBookingPrice", Number(form.privateBookingPrice));
 
     form.pictures.forEach((file) => fd.append("pictures", file));
 
@@ -446,12 +472,62 @@ export default function CoordinatorTours() {
             </FormGroup>
 
             <FormGroup>
-              <Label>Itinerary (one per line)</Label>
-              <Input
-                type="textarea"
-                value={form.itinerary}
-                onChange={onChange("itinerary")}
-              />
+              <Label>Itinerary</Label>
+
+              {form.itinerary.map((day, dayIndex) => (
+                <div
+                  key={dayIndex}
+                  style={{
+                    border: "1px solid #E5E7EB",
+                    padding: 12,
+                    borderRadius: 8,
+                    marginBottom: 10,
+                  }}
+                >
+                  <strong>Day {dayIndex + 1}</strong>
+
+                  <Input
+                    className="mt-2"
+                    placeholder="Activity (e.g. Arrival, Summit Trek)"
+                    value={day[0]}
+                    onChange={(e) => {
+                      const updated = [...form.itinerary];
+                      updated[dayIndex][0] = e.target.value;
+                      setForm((prev) => ({ ...prev, itinerary: updated }));
+                    }}
+                  />
+
+                  {form.itinerary.length > 1 && (
+                    <Button
+                      size="sm"
+                      color="danger"
+                      className="mt-2"
+                      onClick={() => {
+                        const updated = form.itinerary.filter(
+                          (_, i) => i !== dayIndex,
+                        );
+                        setForm((prev) => ({ ...prev, itinerary: updated }));
+                      }}
+                    >
+                      Remove Day
+                    </Button>
+                  )}
+                </div>
+              ))}
+
+              <Button
+                type="button"
+                color="success"
+                outline
+                onClick={() =>
+                  setForm((prev) => ({
+                    ...prev,
+                    itinerary: [...prev.itinerary, [""]],
+                  }))
+                }
+              >
+                + Add Day
+              </Button>
             </FormGroup>
 
             <FormGroup>

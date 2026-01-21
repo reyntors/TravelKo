@@ -85,7 +85,6 @@ const LoginPage = () => {
       if (rememberMe) localStorage.setItem("rememberMe", "true");
       else localStorage.removeItem("rememberMe");
 
-      // ✅ go to coordinator dashboard
       navigate("/coordinator/dashboard", { replace: true });
     } catch (err) {
       setError(err?.message || "Something went wrong. Please try again.");
