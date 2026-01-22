@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import axios from "axios";
 import {
   Container,
   Row,
@@ -8,53 +10,149 @@ import {
   Button,
   Input,
   Label,
-  FormGroup
+  FormGroup,
 } from "reactstrap";
 import {
   FaUsers,
   FaUserFriends,
   FaMoneyBillWave,
-  FaUniversity
+  FaUniversity,
 } from "react-icons/fa";
-import tour1 from "../assets/tour1.jpg";
 
-const tour = {
-  title: "Mount Pinatubo Crater Lake Trek",
-  description: "A breathtaking trek to the iconic crater lake.",
-  image: tour1,
-  price: 3500,
+/* ================= HELPERS ================= */
+
+const formatDate = (date) => {
+  if (!date) return "";
+  return new Date(date).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
 };
 
+/* ================= COMPONENT ================= */
+
 function BookAdventure() {
+  const navigate = useNavigate();
+  const { state } = useLocation();
+
+  const API_BASE =
+    import.meta.env.VITE_API_BASE_URL || "https://api.travelko.site/";
+
+  const token = localStorage.getItem("auth_token");
+
+  /* ================= DATA FROM TOUR DETAILS ================= */
+
+  const tourId = state?.tourId ? Number(state.tourId) : null;
+  const tourTitle = state?.title || "Selected Tour";
+  const tourImage = state?.image || "";
+  const price = Number(state?.price || 0);
+  const selectedDate = state?.selectedDate || null;
+
+  /* ================= STATE ================= */
+
   const [bookingType, setBookingType] = useState("solo");
   const [people, setPeople] = useState(2);
-  const [date, setDate] = useState("");
   const [payment, setPayment] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const totalAmount =
-    bookingType === "group" ? tour.price * people : tour.price;
+  const [form, setForm] = useState({
+    fullName: "",
+    email: "",
+    phoneNumber: "",
+    specialRequests: "",
+  });
+
+  /* ================= GUARD ================= */
+
+  useEffect(() => {
+    if (!tourId || !selectedDate) {
+      alert("Invalid booking session. Please select a tour again.");
+      navigate("/tours");
+    }
+  }, [tourId, selectedDate, navigate]);
+
+  /* ================= HELPERS ================= */
+
+  const totalAmount = bookingType === "group" ? price * people : price;
+
+  const onChange = (key) => (e) =>
+    setForm((p) => ({ ...p, [key]: e.target.value }));
+
+  /* ================= SUBMIT BOOKING ================= */
+
+  const handleConfirmBooking = async () => {
+    if (!payment) {
+      alert("Please select payment method");
+      return;
+    }
+
+    setLoading(true);
+
+    // ❗ tourId is now in the URL
+    const payload = {
+      bookingType: bookingType === "group" ? "joiner" : "private",
+      bookingIndividuals: bookingType === "group" ? people : 1,
+      bookingDateSelected: `${formatDate(
+        selectedDate.start,
+      )} – ${formatDate(selectedDate.end)}`,
+      paymentMethod: payment,
+      amountPaid: String(totalAmount),
+      specialRequests: form.specialRequests,
+      fullName: form.fullName,
+      email: form.email,
+      phoneNumber: form.phoneNumber,
+    };
+
+    console.log("🚀 BOOKING PAYLOAD:", payload);
+
+    try {
+      await axios.post(
+        `${API_BASE}booking/${tourId}`, // ✅ TOUR-SPECIFIC ENDPOINT
+        payload,
+      );
+
+      alert("✅ Booking successful!");
+      navigate("/tours");
+    } catch (err) {
+      console.error(err);
+      alert(err?.response?.data?.message || "Booking failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /* ================= UI ================= */
 
   return (
     <>
-      {/* HERO */}
+      {/* ================= HERO ================= */}
       <div
         style={{
-          backgroundImage: `url(${tour.image})`,
+          backgroundImage: `url(${tourImage})`,
           height: "300px",
           backgroundSize: "cover",
-          backgroundPosition: "center"
+          backgroundPosition: "center",
+          position: "relative",
         }}
         className="d-flex align-items-center text-white"
       >
-        <Container>
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            background: "rgba(0,0,0,0.45)",
+          }}
+        />
+        <Container style={{ position: "relative" }}>
           <h1 className="fw-bold">Book Your Adventure</h1>
-          <p>{tour.description}</p>
+          <p>{tourTitle}</p>
         </Container>
       </div>
 
       <Container className="my-5">
         <Row className="g-4">
-          {/* LEFT SIDE */}
+          {/* LEFT */}
           <Col md="8">
             {/* PERSONAL INFO */}
             <Card className="mb-4 shadow-sm">
@@ -63,102 +161,81 @@ function BookAdventure() {
 
                 <FormGroup>
                   <Label>Full Name</Label>
-                  <Input placeholder="Enter full name" />
+                  <Input
+                    value={form.fullName}
+                    onChange={onChange("fullName")}
+                    placeholder="Enter full name"
+                  />
                 </FormGroup>
 
                 <FormGroup>
-                  <Label>Email Address</Label>
-                  <Input type="email" placeholder="Enter email" />
+                  <Label>Email</Label>
+                  <Input
+                    type="email"
+                    value={form.email}
+                    onChange={onChange("email")}
+                    placeholder="Enter email"
+                  />
                 </FormGroup>
 
                 <FormGroup>
                   <Label>Phone Number</Label>
-                  <Input placeholder="09XXXXXXXXX" />
+                  <Input
+                    value={form.phoneNumber}
+                    onChange={onChange("phoneNumber")}
+                    placeholder="+639XXXXXXXXX"
+                  />
                 </FormGroup>
               </CardBody>
             </Card>
 
-            {/* BOOKING DETAILS */}
+            {/* BOOKING TYPE */}
             <Card className="mb-4 shadow-sm">
               <CardBody>
-                <h5 className="fw-bold mb-3">Booking Details</h5>
+                <h5 className="fw-bold mb-3">Booking Type</h5>
 
-                {/* SOLO */}
                 <div
-                  className={`p-3 rounded mb-3 d-flex align-items-center ${
-                    bookingType === "solo"
-                      ? "bg-success text-white"
-                      : "border"
+                  className={`p-3 rounded mb-3 ${
+                    bookingType === "solo" ? "bg-success text-white" : "border"
                   }`}
-                  style={{ cursor: "pointer" }}
                   onClick={() => setBookingType("solo")}
                 >
-                  <div className="bg-white text-success rounded-circle p-2 me-3">
-                    <FaUsers />
-                  </div>
-                  <div>
-                    <strong>Solo</strong>
-                    <p className="mb-0 small">
-                      Enjoy a private and personalized adventure
-                    </p>
-                    <small>₱{tour.price} · 1 person</small>
-                  </div>
+                  <FaUsers /> Solo (₱{price})
                 </div>
 
-                {/* GROUP */}
                 <div
-                  className={`p-3 rounded mb-3 d-flex align-items-center ${
-                    bookingType === "group"
-                      ? "bg-success text-white"
-                      : "border"
+                  className={`p-3 rounded mb-3 ${
+                    bookingType === "group" ? "bg-success text-white" : "border"
                   }`}
-                  style={{ cursor: "pointer" }}
                   onClick={() => setBookingType("group")}
                 >
-                  <div className="bg-white text-success rounded-circle p-2 me-3">
-                    <FaUserFriends />
-                  </div>
-                  <div>
-                    <strong>Join a Group</strong>
-                    <p className="mb-0 small">
-                      Share the experience with other adventurous travelers
-                    </p>
-                    <small>₱{tour.price} · 2–12 people</small>
-                  </div>
+                  <FaUserFriends /> Join a Group
                 </div>
 
-                {/* PEOPLE */}
-                <FormGroup>
-                  <Label>
-                    <FaUserFriends className="me-2" /> Number of Individuals
-                  </Label>
-                  <Input
-                    type="select"
-                    value={people}
-                    disabled={bookingType !== "group"}
-                    onChange={(e) => setPeople(Number(e.target.value))}
-                  >
-                    {[2,3,4,5,6,7,8,9,10,11,12].map((n) => (
-                      <option key={n} value={n}>
-                        {n}
-                      </option>
-                    ))}
-                  </Input>
-                </FormGroup>
+                {bookingType === "group" && (
+                  <FormGroup>
+                    <Label>Number of Individuals</Label>
+                    <Input
+                      type="select"
+                      value={people}
+                      onChange={(e) => setPeople(Number(e.target.value))}
+                    >
+                      {[2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((n) => (
+                        <option key={n} value={n}>
+                          {n}
+                        </option>
+                      ))}
+                    </Input>
+                  </FormGroup>
+                )}
 
-                {/* DATE */}
                 <FormGroup>
-                  <Label>Select Date</Label>
+                  <Label>Special Requests</Label>
                   <Input
-                    type="select"
-                    value={date}
-                    onChange={(e) => setDate(e.target.value)}
-                  >
-                    <option value="">Choose date</option>
-                    <option>May 7–10, 2026</option>
-                    <option>June 12–15, 2026</option>
-                    <option>July 20–23, 2026</option>
-                  </Input>
+                    type="textarea"
+                    value={form.specialRequests}
+                    onChange={onChange("specialRequests")}
+                  />
                 </FormGroup>
               </CardBody>
             </Card>
@@ -166,73 +243,69 @@ function BookAdventure() {
             {/* PAYMENT */}
             <Card className="shadow-sm">
               <CardBody>
-                <h5 className="fw-bold mb-3">Payment Method</h5>
+                <h5 className="fw-bold mb-3">Payment</h5>
 
                 <div
-                  className={`p-3 rounded mb-2 d-flex align-items-center ${
-                    payment === "gcash"
-                      ? "bg-success text-white"
-                      : "border"
+                  className={`p-3 mb-2 ${
+                    payment === "gcash" ? "bg-success text-white" : "border"
                   }`}
-                  style={{ cursor: "pointer" }}
                   onClick={() => setPayment("gcash")}
                 >
-                  <FaMoneyBillWave className="me-3" />
-                  GCash
+                  <FaMoneyBillWave /> GCash
                 </div>
 
                 <div
-                  className={`p-3 rounded d-flex align-items-center ${
-                    payment === "bank"
-                      ? "bg-success text-white"
-                      : "border"
+                  className={`p-3 ${
+                    payment === "bank" ? "bg-success text-white" : "border"
                   }`}
-                  style={{ cursor: "pointer" }}
                   onClick={() => setPayment("bank")}
                 >
-                  <FaUniversity className="me-3" />
-                  Bank Transfer
+                  <FaUniversity /> Bank Transfer
                 </div>
-
-                <FormGroup className="mt-3">
-                  <Label>Special Requests / Notes</Label>
-                  <Input
-                    type="textarea"
-                    placeholder="Any special requests or notes..."
-                  />
-                </FormGroup>
               </CardBody>
             </Card>
           </Col>
 
-          {/* RIGHT SUMMARY */}
+          {/* SUMMARY */}
           <Col md="4">
-            <Card className="shadow-sm sticky-top" style={{ top: "100px" }}>
+            <Card className="shadow-sm sticky-top" style={{ top: 100 }}>
               <CardBody>
                 <h5 className="fw-bold mb-3">Booking Summary</h5>
 
-                <p><strong>Tour:</strong> {tour.title}</p>
+                <p className="fw-bold">{tourTitle}</p>
+
                 <p>
                   <strong>Type:</strong>{" "}
-                  {bookingType === "solo"
-                    ? "Solo"
-                    : `Group (${people} pax)`}
+                  {bookingType === "group"
+                    ? `Joiner (${people} pax)`
+                    : "Private / Solo"}
                 </p>
-                <p><strong>Date:</strong> {date || "Not selected"}</p>
-                <p><strong>Payment:</strong> {payment || "Not selected"}</p>
+
+                <p>
+                  <strong>Date:</strong>{" "}
+                  {selectedDate?.start && selectedDate?.end
+                    ? `${formatDate(selectedDate.start)} – ${formatDate(selectedDate.end)}`
+                    : "Not selected"}
+                </p>
+
+                <p>
+                  <strong>Payment:</strong>{" "}
+                  {payment ? payment.toUpperCase() : "Not selected"}
+                </p>
 
                 <hr />
 
-                <h5 className="fw-bold text-success">
-                  Total: ₱{totalAmount.toLocaleString()}
-                </h5>
+                <h4 className="text-success fw-bold">
+                  ₱{totalAmount.toLocaleString()}
+                </h4>
 
-                <Button color="success" className="w-100 mt-3">
-                  Confirm Booking
-                </Button>
-
-                <Button outline color="secondary" className="w-100 mt-2">
-                  Back to Tours
+                <Button
+                  color="success"
+                  className="w-100 mt-3"
+                  disabled={loading}
+                  onClick={handleConfirmBooking}
+                >
+                  {loading ? "Processing..." : "Confirm Booking"}
                 </Button>
               </CardBody>
             </Card>

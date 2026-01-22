@@ -321,7 +321,7 @@ function Home() {
 
           <Row className="g-4">
             {featuredTours.map((tour) => (
-              <Col xs="12" md="6" lg="4" key={tour._id}>
+              <Col xs="12" md="6" lg="4" key={tour.id}>
                 <Card className="adventure-card h-100 shadow-sm">
                   <CardImg
                     top
@@ -345,7 +345,7 @@ function Home() {
 
                     {/* PRIVATE BOOKING LINK */}
                     <NavLink
-                      to={`/tours/${tour._id}`}
+                      to={`/tours/${tour.id}`}
                       style={{ textDecoration: "none" }}
                     >
                       <p className="text-success fw-semibold mb-3">
@@ -366,7 +366,7 @@ function Home() {
                           size="sm"
                           tag={NavLink}
                           to={`/book`}
-                          state={{ tourId: tour._id }}
+                          state={{ tourId: tour.id }}
                         >
                           Book Now
                         </Button>
@@ -377,7 +377,7 @@ function Home() {
                           color="secondary"
                           size="sm"
                           tag={NavLink}
-                          to={`/tours/${tour._id}`}
+                          to={`/tours/${tour.id}`}
                         >
                           View Details
                         </Button>
