@@ -35,10 +35,9 @@ export default function CoordinatorTours() {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const [dateRange, setDateRange] = useState({
-    startDate: "",
-    endDate: "",
-  });
+  const [dateRanges, setDateRanges] = useState([
+    { startDate: "", endDate: "" },
+  ]);
 
   const [form, setForm] = useState({
     title: "",
@@ -58,27 +57,31 @@ export default function CoordinatorTours() {
 
   // ✅ FIX: parse backend availableDates (string OR array)
   const parseAvailableDates = (availableDates) => {
-    if (!availableDates || !availableDates.length) return null;
+    if (!Array.isArray(availableDates)) return [];
 
-    let raw = availableDates[0];
+    return availableDates
+      .map((item) => {
+        let range = item;
 
-    // backend sends stringified JSON
-    if (typeof raw === "string") {
-      try {
-        raw = JSON.parse(raw);
-      } catch {
-        return null;
-      }
-    }
+        // if backend sends stringified JSON
+        if (typeof item === "string") {
+          try {
+            range = JSON.parse(item);
+          } catch {
+            return null;
+          }
+        }
 
-    if (!Array.isArray(raw) || raw.length < 2) return null;
+        if (!Array.isArray(range) || range.length < 2) return null;
 
-    const start = new Date(raw[0]);
-    const end = new Date(raw[raw.length - 1]);
+        const start = new Date(range[0]);
+        const end = new Date(range[range.length - 1]);
 
-    if (isNaN(start.getTime()) || isNaN(end.getTime())) return null;
+        if (isNaN(start.getTime()) || isNaN(end.getTime())) return null;
 
-    return { start, end };
+        return { start, end };
+      })
+      .filter(Boolean);
   };
 
   const formatDate = (date) =>
@@ -93,6 +96,20 @@ export default function CoordinatorTours() {
 
   const toEndOfDayISO = (date) =>
     new Date(`${date}T23:59:59.999Z`).toISOString();
+
+  const addDateRange = () => {
+    setDateRanges((prev) => [...prev, { startDate: "", endDate: "" }]);
+  };
+
+  const removeDateRange = (index) => {
+    setDateRanges((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const updateDateRange = (index, key, value) => {
+    setDateRanges((prev) =>
+      prev.map((r, i) => (i === index ? { ...r, [key]: value } : r)),
+    );
+  };
 
   /* ================= HELPERS ================= */
   const toggle = () => setOpen(!open);
@@ -111,7 +128,8 @@ export default function CoordinatorTours() {
       privateBookingPrice: "",
       pictures: [],
     });
-    setDateRange({ startDate: "", endDate: "" });
+    // ✅ RESET PROPERLY
+    setDateRanges([{ startDate: "", endDate: "" }]);
   };
 
   const onChange = (key) => (e) =>
@@ -162,32 +180,28 @@ export default function CoordinatorTours() {
     setLoading(true);
 
     // ✅ BUILD PAYLOAD FIRST (PLAIN OBJECT)
-    const payload = {
-      title: form.title,
-      category: form.category,
-      address: form.address,
-      details: form.details,
+    // const payload = {
+    //   title: form.title,
+    //   category: form.category,
+    //   address: form.address,
+    //   details: form.details,
 
-      availableDates: [
-        [
-          toStartOfDayISO(dateRange.startDate),
-          toEndOfDayISO(dateRange.endDate),
-        ],
-      ],
+    //   availableDates: [
+    //     [
+    //       toStartOfDayISO(dateRange.startDate),
+    //       toEndOfDayISO(dateRange.endDate),
+    //     ],
+    //   ],
 
-      meetupLocations: [form.address],
-      packageInclusions: form.packageInclusions.split(",").map((i) => i.trim()),
+    //   meetupLocations: [form.address],
+    //   packageInclusions: form.packageInclusions.split(",").map((i) => i.trim()),
 
-      itinerary: form.itinerary,
-      thingsToBring: form.thingsToBring.split("\n").map((i) => i.trim()),
+    //   itinerary: form.itinerary,
+    //   thingsToBring: form.thingsToBring.split("\n").map((i) => i.trim()),
 
-      joinerPrice: Number(form.joinerPrice),
-      joinerMaxSlots: Number(form.joinerMaxSlots),
-    };
-
-    // ✅ CONSOLE WHAT WILL BE SENT
-    console.log("🚀 PAYLOAD TO BACKEND:");
-    console.log(JSON.stringify(payload, null, 2));
+    //   joinerPrice: Number(form.joinerPrice),
+    //   joinerMaxSlots: Number(form.joinerMaxSlots),
+    // };
 
     const fd = new FormData();
 
@@ -196,13 +210,14 @@ export default function CoordinatorTours() {
     fd.append("address", form.address);
     fd.append("details", form.details);
 
-    const availableDates = [
-      [toStartOfDayISO(dateRange.startDate), toEndOfDayISO(dateRange.endDate)],
-    ];
+    const availableDatesPayload = dateRanges
+      .filter((r) => r.startDate && r.endDate)
+      .map((r) => [toStartOfDayISO(r.startDate), toEndOfDayISO(r.endDate)]);
 
-    availableDates.forEach((range) => {
-      fd.append("availableDates[]", JSON.stringify(range));
-    });
+    console.log("🚀 availableDates payload:", availableDatesPayload);
+    console.log("itinerary:", form.itinerary);
+
+    fd.append("availableDates", JSON.stringify(availableDatesPayload));
 
     fd.append("meetupLocations", JSON.stringify([form.address]));
     fd.append(
@@ -339,10 +354,12 @@ export default function CoordinatorTours() {
                       Duration:
                     </div>
                     <div>
-                      {dates
-                        ? `${formatDate(dates.start)} – ${formatDate(
-                            dates.end,
-                          )}`
+                      {dates.length > 0
+                        ? dates.map((d, i) => (
+                            <div key={i}>
+                              {formatDate(d.start)} – {formatDate(d.end)}
+                            </div>
+                          ))
                         : "—"}
                     </div>
 
@@ -414,42 +431,58 @@ export default function CoordinatorTours() {
               />
             </FormGroup>
 
-            {/* DATE RANGE */}
-            <Row>
-              <Col md="6">
-                <FormGroup>
-                  <Label>Start Date *</Label>
-                  <Input
-                    type="date"
-                    value={dateRange.startDate}
-                    onChange={(e) =>
-                      setDateRange((p) => ({
-                        ...p,
-                        startDate: e.target.value,
-                      }))
-                    }
-                    required
-                  />
-                </FormGroup>
-              </Col>
-              <Col md="6">
-                <FormGroup>
-                  <Label>End Date *</Label>
-                  <Input
-                    type="date"
-                    min={dateRange.startDate}
-                    value={dateRange.endDate}
-                    onChange={(e) =>
-                      setDateRange((p) => ({
-                        ...p,
-                        endDate: e.target.value,
-                      }))
-                    }
-                    required
-                  />
-                </FormGroup>
-              </Col>
-            </Row>
+            <FormGroup>
+              <Label>Available Dates *</Label>
+
+              {dateRanges.map((range, index) => (
+                <Row key={index} className="align-items-end mb-2">
+                  <Col md="5">
+                    <Input
+                      type="date"
+                      value={range.startDate}
+                      onChange={(e) =>
+                        updateDateRange(index, "startDate", e.target.value)
+                      }
+                      required
+                    />
+                  </Col>
+
+                  <Col md="5">
+                    <Input
+                      type="date"
+                      min={range.startDate}
+                      value={range.endDate}
+                      onChange={(e) =>
+                        updateDateRange(index, "endDate", e.target.value)
+                      }
+                      required
+                    />
+                  </Col>
+
+                  <Col md="2">
+                    {dateRanges.length > 1 && (
+                      <Button
+                        color="danger"
+                        outline
+                        onClick={() => removeDateRange(index)}
+                      >
+                        ✕
+                      </Button>
+                    )}
+                  </Col>
+                </Row>
+              ))}
+
+              <Button
+                type="button"
+                color="success"
+                outline
+                size="sm"
+                onClick={addDateRange}
+              >
+                + Add Date
+              </Button>
+            </FormGroup>
 
             <FormGroup>
               <Label>Details *</Label>

@@ -5,6 +5,8 @@ import tour2 from "../assets/tour2.png";
 import tour3 from "../assets/tour3.jpg";
 import tour4 from "../assets/tour4.jpg";
 import { NavLink } from "react-router-dom";
+import axios from "axios";
+
 import {
   Container,
   Row,
@@ -41,42 +43,6 @@ import {
   FaMobileAlt,
 } from "react-icons/fa";
 
-const featuredTours = [
-  {
-    id: 1,
-    title: "Mount Apo Adventure",
-    image: tour1,
-    location: "Davao, Philippines",
-    duration: "3 Days / 2 Nights",
-    rating: 4.8,
-    reviews: 124,
-    price: 3500,
-    isPrivate: true,
-  },
-  {
-    id: 2,
-    title: "Samal Island Escape",
-    image: tour2,
-    location: "Samal Island",
-    duration: "1 Day Tour",
-    rating: 4.7,
-    reviews: 98,
-    price: 2800,
-    isPrivate: false,
-  },
-  {
-    id: 3,
-    title: "Bukidnon Highlands Trek",
-    image: tour3,
-    location: "Bukidnon",
-    duration: "2 Days / 1 Night",
-    rating: 4.9,
-    reviews: 156,
-    price: 4200,
-    isPrivate: true,
-  },
-];
-
 const testimonials = [
   {
     name: "Mary Grace Gallardo",
@@ -109,9 +75,57 @@ const testimonials = [
 // Helper to render stars
 const renderStars = (rating) => "⭐".repeat(rating) + "☆".repeat(5 - rating);
 
+const getDurationLabel = (availableDates) => {
+  if (!Array.isArray(availableDates) || availableDates.length === 0)
+    return "Flexible dates";
+
+  let range = availableDates[0];
+
+  if (typeof range === "string") {
+    try {
+      range = JSON.parse(range);
+    } catch {
+      return "Flexible dates";
+    }
+  }
+
+  if (!Array.isArray(range) || range.length < 2) return "Flexible dates";
+
+  const start = new Date(range[0]);
+  const end = new Date(range[range.length - 1]);
+
+  const days = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
+
+  return `${days} Day${days > 1 ? "s" : ""}`;
+};
+
 function Home() {
+  const [featuredTours, setFeaturedTours] = useState([]);
+  const [loadingTours, setLoadingTours] = useState(true);
   const [activeIndex, setActiveIndex] = useState(0);
   const [likes, setLikes] = useState(testimonials.map(() => 0));
+  const [categories, setCategories] = useState([]);
+
+  const API_BASE =
+    import.meta.env.VITE_API_BASE_URL || "https://api.travelko.site/";
+
+  useEffect(() => {
+    const fetchFeaturedTours = async () => {
+      try {
+        const res = await axios.get(`${API_BASE}tours`);
+
+        // OPTIONAL: pick only first 6 tours
+        setFeaturedTours(res.data.slice(0, 3));
+      } catch (err) {
+        console.error("Failed to load featured tours", err);
+      } finally {
+        setLoadingTours(false);
+      }
+    };
+
+    fetchFeaturedTours();
+  }, []);
+
   // const [featuredTours, setFeaturedTours] = useState([]);
   const swiperRef = useRef(null);
 
@@ -127,11 +141,37 @@ function Home() {
     }
   };
 
-  //   useEffect(() => {
-  //   fetch("/api/featured-tours")
-  //     .then((res) => res.json())
-  //     .then((data) => setFeaturedTours(data));
-  // }, []);
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const res = await fetch(`${API_BASE}tours`);
+        const tours = await res.json();
+
+        // Group by category
+        const map = {};
+
+        tours.forEach((tour) => {
+          if (!tour.category) return;
+
+          if (!map[tour.category]) {
+            map[tour.category] = {
+              name: tour.category,
+              count: 0,
+              image: tour.pictureUrls?.[0], // first image as cover
+            };
+          }
+
+          map[tour.category].count++;
+        });
+
+        setCategories(Object.values(map));
+      } catch (err) {
+        console.error("Failed to load categories", err);
+      }
+    };
+
+    fetchCategories();
+  }, []);
 
   return (
     <>
@@ -275,17 +315,20 @@ function Home() {
           <Row className="text-center mb-5">
             <Col>
               <h2 className="fw-bold">Featured Adventures</h2>
-              <p className="text-muted">
-                Handpicked experiences for the ultimate adventurer
-              </p>
+              <p className="text-muted">Handpicked highlights you’ll love</p>
             </Col>
           </Row>
 
           <Row className="g-4">
             {featuredTours.map((tour) => (
-              <Col xs="12" md="6" lg="4" key={tour.id}>
-                <Card className="adventure-card h-100">
-                  <CardImg top src={tour.image} alt={tour.title} />
+              <Col xs="12" md="6" lg="4" key={tour._id}>
+                <Card className="adventure-card h-100 shadow-sm">
+                  <CardImg
+                    top
+                    src={tour.pictureUrls?.[0]}
+                    alt={tour.title}
+                    style={{ height: 220, objectFit: "cover" }}
+                  />
 
                   <CardBody>
                     <CardTitle tag="h5" className="fw-bold">
@@ -293,43 +336,48 @@ function Home() {
                     </CardTitle>
 
                     <p className="text-muted mb-1">
-                      <FaMapMarkerAlt /> {tour.location}
+                      <FaMapMarkerAlt /> {tour.address}
                     </p>
+
                     <p className="text-muted mb-2">
-                      <FaClock /> {tour.duration} <FaStar /> {tour.rating} (
-                      {tour.reviews})
+                      <FaClock /> {getDurationLabel(tour.availableDates)}
                     </p>
+
+                    {/* PRIVATE BOOKING LINK */}
                     <NavLink
-                      to="/tours/book-private"
+                      to={`/tours/${tour._id}`}
                       style={{ textDecoration: "none" }}
                     >
-                      <p className="text-success mb-3">
-                        Book a Private Tour &gt;&gt;
+                      <p className="text-success fw-semibold mb-3">
+                        Book a Private Tour »
                       </p>
                     </NavLink>
 
                     <div className="d-flex justify-content-between align-items-center">
                       <h5 className="text-success fw-bold mb-0">
-                        ₱{tour.price.toLocaleString()}{" "}
-                        <small className="text-muted">/pax</small>
+                        ₱{Number(tour.joinerPrice).toLocaleString()}
+                        <small className="text-muted"> / pax</small>
                       </h5>
 
                       <div className="d-flex gap-2">
+                        {/* BOOK NOW */}
                         <Button
                           color="success"
                           size="sm"
                           tag={NavLink}
-                          // to={`/book/${tour.id}`}
-                          to="/book"
+                          to={`/book`}
+                          state={{ tourId: tour._id }}
                         >
-                          Book now!
+                          Book Now
                         </Button>
+
+                        {/* VIEW DETAILS */}
                         <Button
                           outline
                           color="secondary"
                           size="sm"
                           tag={NavLink}
-                          to="/tours/details"
+                          to={`/tours/${tour._id}`}
                         >
                           View Details
                         </Button>
@@ -471,73 +519,52 @@ function Home() {
       </section>{" "}
       <section className="section py-5">
         <Container>
-          {" "}
           <div className="text-center mb-4">
             <h2>Adventure Categories</h2>
             <p className="subtitle text-muted">
-              {" "}
-              Choose from our diverse range of adventure{" "}
+              Choose from our diverse range of adventures
             </p>
           </div>
+
           <Row>
-            {/* Card 1 */}
-            <Col xs="12" sm="6" lg="3" className="mb-4">
-              <Card className="adventure-card h-100">
-                <img
-                  src={tour1}
-                  alt="Mountaineering"
-                  className="adventure-img"
-                />
-                <CardBody>
-                  <h5>Mountain Climbing</h5>
-                  <p className="location">
-                    {" "}
-                    Conquer peaks and enjoy breathtaking views{" "}
-                  </p>
-                  <p className="private-tour">45 Tours</p>
-                </CardBody>
-              </Card>
-            </Col>
-            {/* Card 2 */}
-            <Col xs="12" sm="6" lg="3" className="mb-4">
-              <Card className="adventure-card h-100">
-                <img src={tour3} alt="Scuba Diving" className="adventure-img" />
-                <CardBody>
-                  {" "}
-                  <h5>Scuba Diving</h5>
-                  <p className="location"> Explore underwater beauty </p>
-                  <p className="private-tour">45 Tours</p>
-                </CardBody>
-              </Card>
-            </Col>
-            {/* Card 3 */}
-            <Col xs="12" sm="6" lg="3" className="mb-4">
-              <Card className="adventure-card h-100">
-                <img
-                  src={tour2}
-                  alt="Island Hopping"
-                  className="adventure-img"
-                />
-                <CardBody>
-                  {" "}
-                  <h5>Island Hopping</h5>{" "}
-                  <p className="location"> Discover tropical islands </p>
-                  <p className="private-tour">45 Tours</p>
-                </CardBody>
-              </Card>
-            </Col>
-            {/* Card 4 */}
-            <Col xs="12" sm="6" lg="3" className="mb-4">
-              <Card className="adventure-card h-100">
-                <img src={tour4} alt="Camping" className="adventure-img" />
-                <CardBody>
-                  {" "}
-                  <h5>Camping</h5>
-                  <p className="location"> Experience nature up close </p>
-                  <p className="private-tour">45 Tours</p>
-                </CardBody>
-              </Card>
-            </Col>
+            {categories.map((cat) => (
+              <Col xs="12" sm="6" lg="3" className="mb-4" key={cat.name}>
+                <Card
+                  className="adventure-card h-100"
+                  style={{ cursor: "pointer" }}
+                  onClick={() =>
+                    window.location.assign(`/tours?category=${cat.name}`)
+                  }
+                >
+                  <img
+                    src={cat.image}
+                    alt={cat.name}
+                    className="adventure-img"
+                    style={{
+                      height: 200,
+                      objectFit: "cover",
+                    }}
+                  />
+
+                  <CardBody className="text-center">
+                    <h5 className="fw-bold">{cat.name}</h5>
+
+                    <p className="text-muted mb-1">
+                      {cat.count} Tour{cat.count > 1 ? "s" : ""}
+                    </p>
+
+                    <Button
+                      color="success"
+                      size="sm"
+                      tag={NavLink}
+                      to={`/tours?category=${cat.name}`}
+                    >
+                      View Tours
+                    </Button>
+                  </CardBody>
+                </Card>
+              </Col>
+            ))}
           </Row>
         </Container>
       </section>

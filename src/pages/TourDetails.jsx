@@ -12,21 +12,19 @@ import {
 } from "react-icons/fa";
 
 /* ================= HELPERS ================= */
+
 const normalizeArray = (value) => {
   if (!value) return [];
 
-  // already an array
   if (Array.isArray(value)) return value;
 
-  // JSON string
   if (typeof value === "string") {
     try {
       const parsed = JSON.parse(value);
       if (Array.isArray(parsed)) return parsed;
     } catch {
-      // comma-separated fallback
       return value
-        .split(",")
+        .split(/,|\n/)
         .map((v) => v.trim())
         .filter(Boolean);
     }
@@ -35,12 +33,47 @@ const normalizeArray = (value) => {
   return [];
 };
 
+const formatDate = (date) =>
+  date.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+
+const parseAvailableDates = (availableDates) => {
+  if (!Array.isArray(availableDates)) return [];
+
+  return availableDates
+    .map((item) => {
+      let range = item;
+
+      if (typeof item === "string") {
+        try {
+          range = JSON.parse(item);
+        } catch {
+          return null;
+        }
+      }
+
+      if (!Array.isArray(range) || range.length < 2) return null;
+
+      const start = new Date(range[0]);
+      const end = new Date(range[range.length - 1]);
+
+      if (isNaN(start.getTime()) || isNaN(end.getTime())) return null;
+
+      return { start, end };
+    })
+    .filter(Boolean);
+};
+
 const formatRange = (range) =>
   `${formatDate(range.start)} – ${formatDate(range.end)}`;
 
 /* ================= COMPONENT ================= */
 
 export default function AdventureDetails() {
+  const [coordinator, setCoordinator] = useState(null);
   const { id } = useParams();
   const navigate = useNavigate();
 
@@ -60,7 +93,7 @@ export default function AdventureDetails() {
         const res = await axios.get(`${API_BASE}tours/${id}`);
 
         const data = res.data;
-        console.log(data);
+
         setTour({
           ...data,
           packageInclusions: normalizeArray(data.packageInclusions),
@@ -92,6 +125,23 @@ export default function AdventureDetails() {
   const nextImage = () => setImageIndex((p) => (p + 1) % images.length);
   const prevImage = () =>
     setImageIndex((p) => (p - 1 + images.length) % images.length);
+
+  // useEffect(() => {
+  //   if (!tour?.coordinatorId) return;
+
+  //   const fetchCoordinator = async () => {
+  //     try {
+  //       const res = await axios.get(
+  //         `${API_BASE}auth/coordinator/${tour.coordinatorId}`,
+  //       );
+  //       setCoordinator(res.data);
+  //     } catch (err) {
+  //       console.error("Failed to load coordinator", err);
+  //     }
+  //   };
+
+  //   fetchCoordinator();
+  // }, [tour]);
 
   /* ================= UI ================= */
 
@@ -274,14 +324,38 @@ export default function AdventureDetails() {
         <Row className="mb-4">
           <Col>
             <h4 className="fw-bold">Coordinator</h4>
-            <p className="mb-1">
-              <FaUser className="me-2" /> Adventure Pro Tours
-            </p>
-            <p>
-              <FaPhone className="me-2" /> +639 912 345 6789
-            </p>
 
-            <p className="text-success">Book a Private Tour »</p>
+            {coordinator ? (
+              <>
+                <p className="mb-1">
+                  <FaUser className="me-2" />
+                  {coordinator.businessName}
+                </p>
+
+                <p>
+                  <FaPhone className="me-2" />
+                  {coordinator.phoneNumber}
+                </p>
+
+                <Button
+                  color="success"
+                  outline
+                  size="sm"
+                  onClick={() =>
+                    navigate("/book-private", {
+                      state: {
+                        tourId: tour.id,
+                        coordinatorId: coordinator.id,
+                      },
+                    })
+                  }
+                >
+                  Book a Private Tour »
+                </Button>
+              </>
+            ) : (
+              <p className="text-muted">Loading coordinator...</p>
+            )}
           </Col>
         </Row>
 
