@@ -41,15 +41,15 @@ function BookAdventure() {
 
   const token = localStorage.getItem("auth_token");
 
-  /* ================= DATA FROM TOUR DETAILS ================= */
+  /* ================= DATA FROM PREVIOUS PAGE ================= */
 
-  const tourId = state?.tourId ? Number(state.tourId) : null;
-  const tourTitle = state?.title || "Selected Tour";
-  const tourImage = state?.image || "";
-  const price = Number(state?.price || 0);
-  const selectedDate = state?.selectedDate || null;
+  const tourId = state?.tourId ?? null;
+  const selectedDate = state?.selectedDate ?? null;
 
   /* ================= STATE ================= */
+
+  const [tour, setTour] = useState(null);
+  const [loadingTour, setLoadingTour] = useState(true);
 
   const [bookingType, setBookingType] = useState("solo");
   const [people, setPeople] = useState(2);
@@ -69,15 +69,46 @@ function BookAdventure() {
     if (!tourId || !selectedDate) {
       alert("Invalid booking session. Please select a tour again.");
       navigate("/tours");
+      return;
     }
+
+    const fetchTour = async () => {
+      try {
+        const res = await axios.get(`${API_BASE}tours`);
+        const allTours = res.data;
+
+        const matchedTour = allTours.find((t) => t.id === tourId);
+
+        if (!matchedTour) {
+          alert("Tour not found.");
+          navigate("/tours");
+          return;
+        }
+
+        setTour(matchedTour);
+      } catch (err) {
+        console.error("Failed to fetch tour", err);
+        alert("Failed to load tour data");
+        navigate("/tours");
+      } finally {
+        setLoadingTour(false);
+      }
+    };
+
+    fetchTour();
   }, [tourId, selectedDate, navigate]);
 
   /* ================= HELPERS ================= */
 
-  const totalAmount = bookingType === "group" ? price * people : price;
-
   const onChange = (key) => (e) =>
     setForm((p) => ({ ...p, [key]: e.target.value }));
+
+  const unitPrice =
+    bookingType === "group"
+      ? Number(tour?.joinerPrice || 0)
+      : Number(tour?.privateBookingPrice || tour?.joinerPrice || 0);
+
+  const totalAmount = bookingType === "group" ? unitPrice * people : unitPrice;
 
   /* ================= SUBMIT BOOKING ================= */
 
@@ -89,7 +120,6 @@ function BookAdventure() {
 
     setLoading(true);
 
-    // ❗ tourId is now in the URL
     const payload = {
       bookingType: bookingType === "group" ? "joiner" : "private",
       bookingIndividuals: bookingType === "group" ? people : 1,
@@ -107,10 +137,7 @@ function BookAdventure() {
     console.log("🚀 BOOKING PAYLOAD:", payload);
 
     try {
-      await axios.post(
-        `${API_BASE}booking/${tourId}`, // ✅ TOUR-SPECIFIC ENDPOINT
-        payload,
-      );
+      await axios.post(`${API_BASE}booking/${tourId}`, payload, {});
 
       alert("✅ Booking successful!");
       navigate("/tours");
@@ -122,6 +149,12 @@ function BookAdventure() {
     }
   };
 
+  /* ================= LOADING ================= */
+
+  if (loadingTour || !tour) {
+    return <p className="text-center mt-5">Loading booking...</p>;
+  }
+
   /* ================= UI ================= */
 
   return (
@@ -129,7 +162,7 @@ function BookAdventure() {
       {/* ================= HERO ================= */}
       <div
         style={{
-          backgroundImage: `url(${tourImage})`,
+          backgroundImage: `url(${tour.pictureUrls?.[0] || ""})`,
           height: "300px",
           backgroundSize: "cover",
           backgroundPosition: "center",
@@ -146,7 +179,7 @@ function BookAdventure() {
         />
         <Container style={{ position: "relative" }}>
           <h1 className="fw-bold">Book Your Adventure</h1>
-          <p>{tourTitle}</p>
+          <p>{tour.title}</p>
         </Container>
       </div>
 
@@ -164,7 +197,7 @@ function BookAdventure() {
                   <Input
                     value={form.fullName}
                     onChange={onChange("fullName")}
-                    placeholder="Enter full name"
+                    placeholder="Enter your fullname"
                   />
                 </FormGroup>
 
@@ -174,16 +207,16 @@ function BookAdventure() {
                     type="email"
                     value={form.email}
                     onChange={onChange("email")}
-                    placeholder="Enter email"
+                    placeholder="Enter your email"
                   />
                 </FormGroup>
 
                 <FormGroup>
-                  <Label>Phone Number</Label>
+                  <Label>Contact Number</Label>
                   <Input
                     value={form.phoneNumber}
                     onChange={onChange("phoneNumber")}
-                    placeholder="+639XXXXXXXXX"
+                    placeholder="Enter your number"
                   />
                 </FormGroup>
               </CardBody>
@@ -200,7 +233,7 @@ function BookAdventure() {
                   }`}
                   onClick={() => setBookingType("solo")}
                 >
-                  <FaUsers /> Solo (₱{price})
+                  <FaUsers /> Private / Solo (₱{tour.privateBookingPrice})
                 </div>
 
                 <div
@@ -209,7 +242,7 @@ function BookAdventure() {
                   }`}
                   onClick={() => setBookingType("group")}
                 >
-                  <FaUserFriends /> Join a Group
+                  <FaUserFriends /> Join a Group (₱{tour.joinerPrice})
                 </div>
 
                 {bookingType === "group" && (
@@ -272,7 +305,7 @@ function BookAdventure() {
               <CardBody>
                 <h5 className="fw-bold mb-3">Booking Summary</h5>
 
-                <p className="fw-bold">{tourTitle}</p>
+                <p className="fw-bold">{tour.title}</p>
 
                 <p>
                   <strong>Type:</strong>{" "}
@@ -282,10 +315,8 @@ function BookAdventure() {
                 </p>
 
                 <p>
-                  <strong>Date:</strong>{" "}
-                  {selectedDate?.start && selectedDate?.end
-                    ? `${formatDate(selectedDate.start)} – ${formatDate(selectedDate.end)}`
-                    : "Not selected"}
+                  <strong>Date:</strong> {formatDate(selectedDate.start)} –{" "}
+                  {formatDate(selectedDate.end)}
                 </p>
 
                 <p>

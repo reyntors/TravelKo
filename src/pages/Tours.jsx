@@ -136,7 +136,19 @@ export default function Tours() {
   };
 
   const bookNow = (tour) => {
-    navigate("/book", { state: { tourId: tour.id } });
+    const parsedDate = parseAvailableDates(tour.availableDates);
+
+    if (!parsedDate) {
+      alert("This tour has no available dates.");
+      return;
+    }
+
+    navigate("/book", {
+      state: {
+        tourId: tour.id,
+        selectedDate: parsedDate,
+      },
+    });
   };
 
   const copyTourLink = async (tour) => {

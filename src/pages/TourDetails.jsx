@@ -1,260 +1,366 @@
-import { useState, useEffect } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
+import { Container, Row, Col, Button, Card, CardBody, Badge } from "reactstrap";
 import {
-  Container,
-  Row,
-  Col,
-  Card,
-  CardBody,
-  Button,
-  Input,
-  Label,
-  FormGroup,
-} from "reactstrap";
-import {
-  FaUsers,
-  FaUserFriends,
-  FaMoneyBillWave,
-  FaUniversity,
+  FaStar,
+  FaMapMarkerAlt,
+  FaChevronLeft,
+  FaChevronRight,
+  FaUser,
+  FaPhone,
 } from "react-icons/fa";
 
 /* ================= HELPERS ================= */
 
-const formatDate = (date) => {
-  if (!date) return "";
-  return new Date(date).toLocaleDateString("en-US", {
+const normalizeArray = (value) => {
+  if (!value) return [];
+
+  if (Array.isArray(value)) return value;
+
+  if (typeof value === "string") {
+    try {
+      const parsed = JSON.parse(value);
+      if (Array.isArray(parsed)) return parsed;
+    } catch {
+      return value
+        .split(/,|\n/)
+        .map((v) => v.trim())
+        .filter(Boolean);
+    }
+  }
+
+  return [];
+};
+
+const formatDate = (date) =>
+  date.toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",
     year: "numeric",
   });
+
+const parseAvailableDates = (availableDates) => {
+  if (!Array.isArray(availableDates)) return [];
+
+  return availableDates
+    .map((item) => {
+      let range = item;
+
+      if (typeof item === "string") {
+        try {
+          range = JSON.parse(item);
+        } catch {
+          return null;
+        }
+      }
+
+      if (!Array.isArray(range) || range.length < 2) return null;
+
+      const start = new Date(range[0]);
+      const end = new Date(range[range.length - 1]);
+
+      if (isNaN(start.getTime()) || isNaN(end.getTime())) return null;
+
+      return { start, end };
+    })
+    .filter(Boolean);
 };
+
+const formatRange = (range) =>
+  `${formatDate(range.start)} – ${formatDate(range.end)}`;
 
 /* ================= COMPONENT ================= */
 
-export default function BookAdventure() {
+export default function AdventureDetails() {
+  const [coordinator, setCoordinator] = useState(null);
+  const { id } = useParams();
   const navigate = useNavigate();
-  const { state } = useLocation();
 
   const API_BASE =
     import.meta.env.VITE_API_BASE_URL || "https://api.travelko.site/";
 
-  const token = localStorage.getItem("auth_token");
-
-  // ONLY TOUR ID COMES FROM STATE
-  const tourId = state?.tourId;
-  const selectedDate = state?.selectedDate || null;
-
-  /* ================= STATE ================= */
-
   const [tour, setTour] = useState(null);
-  const [loadingTour, setLoadingTour] = useState(true);
+  const [loading, setLoading] = useState(true);
+  const [imageIndex, setImageIndex] = useState(0);
+  const [selectedDateIndex, setSelectedDateIndex] = useState(0);
 
-  const [bookingType, setBookingType] = useState("solo");
-  const [people, setPeople] = useState(2);
-  const [payment, setPayment] = useState("");
-  const [loading, setLoading] = useState(false);
-
-  const [form, setForm] = useState({
-    fullName: "",
-    email: "",
-    phoneNumber: "",
-    specialRequests: "",
-  });
-
-  /* ================= FETCH TOUR (FROM /tours) ================= */
+  /* ================= FETCH TOUR ================= */
 
   useEffect(() => {
-    if (!tourId) {
-      alert("Invalid booking session");
-      navigate("/tours");
-      return;
-    }
-
     const fetchTour = async () => {
       try {
-        // 🔑 THIS IS THE IMPORTANT PART
-        const res = await axios.get(`${API_BASE}tours`);
-        const allTours = res.data;
+        // 1️⃣ get single tour (details)
+        const res = await axios.get(`${API_BASE}tours/${id}`);
+        const tourDetails = res.data;
 
-        const matchedTour = allTours.find(
-          (t) => t._id === tourId || t.id === tourId,
-        );
+        // 2️⃣ get all tours (with createdBy.phoneNumber)
+        const res2 = await axios.get(`${API_BASE}tours`);
+        const allTours = res2.data;
 
-        if (!matchedTour) {
-          alert("Tour not found");
-          navigate("/tours");
-          return;
-        }
+        // 3️⃣ find matching tour
+        const matchedTour = allTours.find((t) => t._id === tourDetails._id);
 
-        setTour(matchedTour);
+        // 4️⃣ extract coordinator phone
+        const coordinator = matchedTour?.createdBy || null;
+
+        setTour({
+          ...tourDetails,
+          packageInclusions: normalizeArray(tourDetails.packageInclusions),
+          itinerary: normalizeArray(tourDetails.itinerary),
+          thingsToBring: normalizeArray(tourDetails.thingsToBring),
+          coordinator, // ✅ attach coordinator here
+        });
       } catch (err) {
-        console.error("Failed to load tours", err);
-        alert("Failed to load booking info");
-        navigate("/tours");
+        console.error("Failed to load tour", err);
       } finally {
-        setLoadingTour(false);
+        setLoading(false);
       }
     };
 
     fetchTour();
-  }, [tourId, navigate]);
+  }, [id]);
 
-  /* ================= GUARDS ================= */
-
-  if (loadingTour) {
-    return <p className="text-center mt-5">Loading booking details…</p>;
+  if (loading) {
+    return <p className="text-center mt-5">Loading tour...</p>;
   }
 
   if (!tour) {
     return <p className="text-center mt-5">Tour not found</p>;
   }
 
-  /* ================= PRICE LOGIC ================= */
+  const dateRanges = parseAvailableDates(tour.availableDates);
 
-  const unitPrice =
-    bookingType === "group"
-      ? Number(tour.joinerPrice)
-      : Number(tour.privateBookingPrice || tour.joinerPrice);
+  const images = tour.pictureUrls || [];
 
-  const totalAmount = bookingType === "group" ? unitPrice * people : unitPrice;
-
-  const onChange = (key) => (e) =>
-    setForm((p) => ({ ...p, [key]: e.target.value }));
-
-  /* ================= CREATE BOOKING ================= */
-
-  const handleConfirmBooking = async () => {
-    if (!payment) {
-      alert("Please select payment method");
-      return;
-    }
-
-    setLoading(true);
-
-    const payload = {
-      bookingType: bookingType === "group" ? "joiner" : "private",
-      bookingIndividuals: bookingType === "group" ? people : 1,
-      bookingDateSelected: selectedDate
-        ? `${formatDate(selectedDate.start)} – ${formatDate(selectedDate.end)}`
-        : "Not selected",
-      paymentMethod: payment,
-      amountPaid: String(totalAmount),
-      specialRequests: form.specialRequests,
-      fullName: form.fullName,
-      email: form.email,
-      phoneNumber: form.phoneNumber,
-    };
-
-    try {
-      await axios.post(`${API_BASE}booking/${tour._id}`, payload, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      alert("✅ Booking successful!");
-      navigate("/tours");
-    } catch (err) {
-      console.error(err);
-      alert(err?.response?.data?.message || "Booking failed");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const nextImage = () => setImageIndex((p) => (p + 1) % images.length);
+  const prevImage = () =>
+    setImageIndex((p) => (p - 1 + images.length) % images.length);
 
   /* ================= UI ================= */
 
   return (
     <>
-      {/* HERO */}
+      {/* ================= HERO ================= */}
       <div
         style={{
-          backgroundImage: `url(${tour.pictureUrls?.[0] || ""})`,
-          height: "300px",
+          backgroundImage: `url(${images[0]})`,
           backgroundSize: "cover",
           backgroundPosition: "center",
+          padding: "120px 0",
+          color: "#fff",
         }}
-        className="d-flex align-items-center text-white"
       >
         <Container>
-          <h1 className="fw-bold">Book Your Adventure</h1>
-          <p>{tour.title}</p>
+          <Badge color="success" pill className="mb-2 px-3 py-2">
+            {tour.category}
+          </Badge>
+
+          <h1 className="fw-bold">{tour.title}</h1>
+
+          <div className="d-flex gap-3 mt-2">
+            <span>
+              <FaStar className="text-warning" /> 4.8 (124)
+            </span>
+            <span>
+              <FaMapMarkerAlt /> {tour.address}
+            </span>
+          </div>
         </Container>
       </div>
 
       <Container className="my-5">
-        <Row className="g-4">
-          {/* LEFT */}
-          <Col md="8">
-            <Card className="mb-4 shadow-sm">
-              <CardBody>
-                <h5 className="fw-bold mb-3">Personal Information</h5>
+        {/* ================= GALLERY ================= */}
+        <h4 className="fw-bold">Gallery</h4>
+        <Row className="mb-5">
+          <Col className="text-center position-relative">
+            <img
+              src={images[imageIndex]}
+              alt="Gallery"
+              className="img-fluid rounded shadow"
+              style={{ maxHeight: 300, objectFit: "cover" }}
+            />
 
-                <FormGroup>
-                  <Label>Full Name</Label>
-                  <Input
-                    value={form.fullName}
-                    onChange={onChange("fullName")}
-                  />
-                </FormGroup>
-
-                <FormGroup>
-                  <Label>Email</Label>
-                  <Input
-                    type="email"
-                    value={form.email}
-                    onChange={onChange("email")}
-                  />
-                </FormGroup>
-
-                <FormGroup>
-                  <Label>Phone Number</Label>
-                  <Input
-                    value={form.phoneNumber}
-                    onChange={onChange("phoneNumber")}
-                  />
-                </FormGroup>
-              </CardBody>
-            </Card>
-          </Col>
-
-          {/* SUMMARY */}
-          <Col md="4">
-            <Card className="shadow-sm sticky-top" style={{ top: 100 }}>
-              <CardBody>
-                <h5 className="fw-bold mb-3">Booking Summary</h5>
-
-                <p className="fw-bold">{tour.title}</p>
-
-                <p>
-                  <strong>Type:</strong>{" "}
-                  {bookingType === "group"
-                    ? `Joiner (${people} pax)`
-                    : "Private / Solo"}
-                </p>
-
-                <p>
-                  <strong>Payment:</strong>{" "}
-                  {payment ? payment.toUpperCase() : "Not selected"}
-                </p>
-
-                <hr />
-
-                <h4 className="text-success fw-bold">
-                  ₱{totalAmount.toLocaleString()}
-                </h4>
+            {images.length > 1 && (
+              <>
+                <Button
+                  color="success"
+                  className="position-absolute top-50 start-0 translate-middle-y"
+                  onClick={prevImage}
+                >
+                  <FaChevronLeft />
+                </Button>
 
                 <Button
                   color="success"
-                  className="w-100 mt-3"
-                  disabled={loading}
-                  onClick={handleConfirmBooking}
+                  className="position-absolute top-50 end-0 translate-middle-y"
+                  onClick={nextImage}
                 >
-                  {loading ? "Processing..." : "Confirm Booking"}
+                  <FaChevronRight />
                 </Button>
+              </>
+            )}
+          </Col>
+        </Row>
+
+        {/* ================= ABOUT ================= */}
+        <Row className="mb-5">
+          <Col>
+            <h4 className="fw-bold">About this tour</h4>
+            <p>{tour.details}</p>
+          </Col>
+        </Row>
+
+        {/* ================= ITINERARY ================= */}
+        <Row className="mb-5">
+          <Col>
+            <h4 className="fw-bold mb-3">Itinerary</h4>
+
+            {tour.itinerary?.map((item, idx) => (
+              <div key={idx} className="d-flex gap-3 mb-2">
+                <Badge color="success" pill>
+                  Day {idx + 1}
+                </Badge>
+                <span>{item}</span>
+              </div>
+            ))}
+          </Col>
+        </Row>
+
+        {/* ================= REVIEWS ================= */}
+        <Row className="mb-5">
+          <Col>
+            <div className="d-flex justify-content-between align-items-center">
+              <h4 className="fw-bold">Reviews & Comments</h4>
+              <Button color="success" size="sm">
+                + Leave Review
+              </Button>
+            </div>
+
+            <Card className="mt-3 shadow-sm">
+              <CardBody>
+                <strong>Mary Grace Gallardo</strong>{" "}
+                <Badge color="success">Verified</Badge>
+                <div className="text-warning mt-1">
+                  <FaStar /> <FaStar /> <FaStar /> <FaStar /> <FaStar />
+                </div>
+                <p className="mt-2">
+                  Amazing experience! The coordinator was very professional.
+                </p>
               </CardBody>
             </Card>
           </Col>
         </Row>
+
+        {/* ================= AVAILABLE DATES ================= */}
+        <Row className="mb-5">
+          <Col>
+            <h4 className="fw-bold">Available Dates</h4>
+
+            <Card className="mt-3">
+              <CardBody>
+                {dateRanges.length === 0 ? (
+                  <p className="text-muted">No available dates</p>
+                ) : (
+                  <>
+                    <label className="fw-semibold mb-2">
+                      Select your preferred date
+                    </label>
+
+                    <select
+                      className="form-select"
+                      value={selectedDateIndex}
+                      onChange={(e) =>
+                        setSelectedDateIndex(Number(e.target.value))
+                      }
+                    >
+                      {dateRanges.map((range, index) => (
+                        <option key={index} value={index}>
+                          {formatRange(range)}
+                        </option>
+                      ))}
+                    </select>
+
+                    <div className="mt-3 text-success fw-semibold">
+                      Selected:
+                      <br />
+                      {formatRange(dateRanges[selectedDateIndex])}
+                    </div>
+                  </>
+                )}
+              </CardBody>
+            </Card>
+          </Col>
+        </Row>
+
+        {/* ================= INCLUDED / BRING ================= */}
+        <Row className="mb-5">
+          <Col md="6">
+            <h5 className="fw-bold">What’s included</h5>
+            <ul>
+              {tour.packageInclusions?.map((i, idx) => (
+                <li key={idx}>{i}</li>
+              ))}
+            </ul>
+          </Col>
+
+          <Col md="6">
+            <h5 className="fw-bold">Things to bring (Optional)</h5>
+            <ul>
+              {tour.thingsToBring?.map((i, idx) => (
+                <li key={idx}>{i}</li>
+              ))}
+            </ul>
+          </Col>
+        </Row>
+
+        {/* ================= COORDINATOR ================= */}
+        <Row className="mb-4">
+          <Col>
+            <h4 className="fw-bold">Coordinator</h4>
+
+            <p className="mb-1">
+              <FaUser className="me-2" />
+              {tour.coordinator?.businessName || "Adventure Pro Tour"}
+            </p>
+
+            <p>
+              <FaPhone className="me-2" />
+              {tour.coordinator?.phoneNumber || "Phone not available"}
+            </p>
+
+            <p className="text-success">Book a Private Tour »</p>
+          </Col>
+        </Row>
+
+        {/* ================= ACTIONS ================= */}
+        <div className="d-flex flex-column align-items-center gap-2">
+          <Button
+            color="success"
+            size="lg"
+            className="px-5"
+            onClick={() =>
+              navigate("/book", {
+                state: {
+                  tourId: tour._id || tour.id,
+                  selectedDate: dateRanges[selectedDateIndex],
+                },
+              })
+            }
+          >
+            Book Now!
+          </Button>
+
+          <Button
+            outline
+            color="secondary"
+            size="lg"
+            className="px-5"
+            onClick={() => navigate("/tours")}
+          >
+            Back to Tours
+          </Button>
+        </div>
       </Container>
     </>
   );
