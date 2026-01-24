@@ -14,6 +14,7 @@ import {
   Alert,
 } from "reactstrap";
 import { useNavigate, NavLink } from "react-router-dom";
+import { Modal, ModalBody, Spinner } from "reactstrap";
 
 const API_BASE =
   import.meta.env.VITE_API_BASE_URL || "https://api.travelko.site/";
@@ -26,6 +27,7 @@ const LoginPage = () => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
+  const [loggingIn, setLoggingIn] = useState(false);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -34,6 +36,7 @@ const LoginPage = () => {
     e.preventDefault();
     setError("");
     setLoading(true);
+    setLoggingIn(true);
 
     try {
       const res = await fetch(`${API_BASE}auth/coordinator/login`, {
@@ -42,24 +45,22 @@ const LoginPage = () => {
           "Content-Type": "application/json",
           Accept: "application/json",
         },
-
-        body: JSON.stringify({
-          username,
-          password,
-        }),
+        body: JSON.stringify({ username, password }),
       });
 
-      let data = null;
+      const text = await res.text();
+
+      let data;
       try {
-        data = await res.json();
+        data = JSON.parse(text);
       } catch {
-        data = null;
+        throw new Error(text || "Invalid server response");
       }
 
       if (!res.ok) {
-        const msg =
-          data?.message || data?.error || `Login failed (HTTP ${res.status})`;
-        throw new Error(msg);
+        throw new Error(
+          data?.message || data?.error || `Login failed (HTTP ${res.status})`,
+        );
       }
 
       const token =
@@ -69,7 +70,7 @@ const LoginPage = () => {
         data?.data?.accessToken;
 
       if (!token) {
-        throw new Error("Login succeeded but token was not returned by API.");
+        throw new Error("Login succeeded but token was not returned.");
       }
 
       localStorage.setItem("auth_token", token);
@@ -81,13 +82,16 @@ const LoginPage = () => {
         );
       }
 
-      // Remember me behavior
       if (rememberMe) localStorage.setItem("rememberMe", "true");
       else localStorage.removeItem("rememberMe");
 
-      navigate("/coordinator/dashboard", { replace: true });
+      // small delay for UX smoothness
+      setTimeout(() => {
+        navigate("/coordinator/dashboard", { replace: true });
+      }, 600);
     } catch (err) {
-      setError(err?.message || "Something went wrong. Please try again.");
+      setError(err.message || "Something went wrong.");
+      setLoggingIn(false);
     } finally {
       setLoading(false);
     }
@@ -257,6 +261,31 @@ const LoginPage = () => {
           </Card>
         </Col>
       </Row>
+
+      <Modal
+        isOpen={loggingIn}
+        centered
+        backdrop="static"
+        keyboard={false}
+        contentClassName="border-0 shadow-lg rounded-4"
+      >
+        <ModalBody className="text-center py-5">
+          <Spinner
+            style={{
+              width: "3rem",
+              height: "3rem",
+              color: "#16A34A",
+            }}
+            className="mb-3"
+          />
+
+          <h5 className="fw-bold mb-1">Signing in…</h5>
+
+          <p className="text-muted mb-0" style={{ fontSize: 14 }}>
+            Please wait while we verify your credentials
+          </p>
+        </ModalBody>
+      </Modal>
     </Container>
   );
 };

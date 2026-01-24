@@ -83,7 +83,7 @@ export default function AdventureDetails() {
   const [tour, setTour] = useState(null);
   const [loading, setLoading] = useState(true);
   const [imageIndex, setImageIndex] = useState(0);
-  const [selectedDateIndex, setSelectedDateIndex] = useState(0);
+  // const [selectedDateIndex, setSelectedDateIndex] = useState(0);
 
   /* ================= FETCH TOUR ================= */
 
@@ -253,7 +253,7 @@ export default function AdventureDetails() {
         </Row>
 
         {/* ================= AVAILABLE DATES ================= */}
-        <Row className="mb-5">
+        {/* <Row className="mb-5">
           <Col>
             <h4 className="fw-bold">Available Dates</h4>
 
@@ -291,7 +291,7 @@ export default function AdventureDetails() {
               </CardBody>
             </Card>
           </Col>
-        </Row>
+        </Row> */}
 
         {/* ================= INCLUDED / BRING ================= */}
         <Row className="mb-5">
@@ -343,7 +343,7 @@ export default function AdventureDetails() {
               navigate("/book", {
                 state: {
                   tourId: tour._id || tour.id,
-                  selectedDate: dateRanges[selectedDateIndex],
+                  // selectedDate: dateRanges[selectedDateIndex],
                 },
               })
             }

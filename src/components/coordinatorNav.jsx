@@ -7,7 +7,7 @@ import {
   OffcanvasBody,
   Nav,
   NavItem,
-  Button
+  Button,
 } from "reactstrap";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import {
@@ -16,12 +16,16 @@ import {
   FaCalendarAlt,
   FaUser,
   FaSignOutAlt,
-  FaBars
+  FaBars,
 } from "react-icons/fa";
 
+import { Modal, ModalBody, Spinner } from "reactstrap";
+
 export default function CoordinatorNav() {
-  const [drawerOpen, setDrawerOpen] = useState(false);     // mobile offcanvas
-  const [collapsed, setCollapsed] = useState(true);        // desktop sidebar collapse
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(true);
+  const [loggingOut, setLoggingOut] = useState(false);
+
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -29,19 +33,31 @@ export default function CoordinatorNav() {
   const toggleCollapsed = () => setCollapsed((v) => !v);
 
   const handleLogout = () => {
-    localStorage.removeItem("auth_token");
-    localStorage.removeItem("rememberMe");
-    navigate("/login");
+    setLoggingOut(true);
+
+    setTimeout(() => {
+      localStorage.removeItem("auth_token");
+      localStorage.removeItem("rememberMe");
+      navigate("/");
+    }, 1200);
   };
 
   const menu = useMemo(
     () => [
-      { label: "Dashboard", to: "/coordinator/dashboard", icon: FaTachometerAlt },
-      { label: "Tour Packages", to: "/coordinator/tours", icon: FaMapMarkerAlt },
+      {
+        label: "Dashboard",
+        to: "/coordinator/dashboard",
+        icon: FaTachometerAlt,
+      },
+      {
+        label: "Tour Packages",
+        to: "/coordinator/tours",
+        icon: FaMapMarkerAlt,
+      },
       { label: "Bookings", to: "/coordinator/bookings", icon: FaCalendarAlt },
       { label: "Profile", to: "/coordinator/profile", icon: FaUser },
     ],
-    []
+    [],
   );
 
   const isActivePath = (to) => location.pathname === to;
@@ -354,6 +370,31 @@ export default function CoordinatorNav() {
         }}
         className="d-md-none"
       />
+
+      <Modal
+        isOpen={loggingOut}
+        centered
+        backdrop="static"
+        keyboard={false}
+        contentClassName="border-0"
+      >
+        <ModalBody className="text-center py-5">
+          <Spinner
+            style={{
+              width: "3rem",
+              height: "3rem",
+              color: green,
+            }}
+            className="mb-3"
+          />
+
+          <h5 className="fw-bold mb-1">Logging out…</h5>
+
+          <p className="text-muted mb-0" style={{ fontSize: 14 }}>
+            Please wait a moment
+          </p>
+        </ModalBody>
+      </Modal>
     </>
   );
 }

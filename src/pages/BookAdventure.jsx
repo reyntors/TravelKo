@@ -17,7 +17,12 @@ import {
   FaUserFriends,
   FaMoneyBillWave,
   FaUniversity,
+  FaCheckCircle,
 } from "react-icons/fa";
+
+import { Modal, ModalBody } from "reactstrap";
+
+import { QRCodeCanvas } from "qrcode.react";
 
 /* ================= HELPERS ================= */
 
@@ -39,12 +44,35 @@ function BookAdventure() {
   const API_BASE =
     import.meta.env.VITE_API_BASE_URL || "https://api.travelko.site/";
 
-  const token = localStorage.getItem("auth_token");
-
   /* ================= DATA FROM PREVIOUS PAGE ================= */
 
   const tourId = state?.tourId ?? null;
-  const selectedDate = state?.selectedDate ?? null;
+  const parseAvailableDates = (availableDates) => {
+    if (!Array.isArray(availableDates)) return [];
+
+    return availableDates
+      .map((item) => {
+        let range = item;
+
+        if (typeof item === "string") {
+          try {
+            range = JSON.parse(item);
+          } catch {
+            return null;
+          }
+        }
+
+        if (!Array.isArray(range) || range.length < 2) return null;
+
+        const start = new Date(range[0]);
+        const end = new Date(range[range.length - 1]);
+
+        if (isNaN(start.getTime()) || isNaN(end.getTime())) return null;
+
+        return { start, end };
+      })
+      .filter(Boolean);
+  };
 
   /* ================= STATE ================= */
 
@@ -55,6 +83,13 @@ function BookAdventure() {
   const [people, setPeople] = useState(2);
   const [payment, setPayment] = useState("");
   const [loading, setLoading] = useState(false);
+  const [dateRanges, setDateRanges] = useState([]);
+  const [selectedDateIndex, setSelectedDateIndex] = useState(0);
+  const [agreeTerms, setAgreeTerms] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [bookingRef, setBookingRef] = useState("");
+
+  const selectedDate = dateRanges[selectedDateIndex] || null;
 
   const [form, setForm] = useState({
     fullName: "",
@@ -66,7 +101,7 @@ function BookAdventure() {
   /* ================= GUARD ================= */
 
   useEffect(() => {
-    if (!tourId || !selectedDate) {
+    if (!tourId) {
       alert("Invalid booking session. Please select a tour again.");
       navigate("/tours");
       return;
@@ -86,9 +121,12 @@ function BookAdventure() {
         }
 
         setTour(matchedTour);
+
+        const parsed = parseAvailableDates(matchedTour.availableDates);
+        setDateRanges(parsed);
+        setSelectedDateIndex(0);
       } catch (err) {
         console.error("Failed to fetch tour", err);
-        alert("Failed to load tour data");
         navigate("/tours");
       } finally {
         setLoadingTour(false);
@@ -96,7 +134,7 @@ function BookAdventure() {
     };
 
     fetchTour();
-  }, [tourId, selectedDate, navigate]);
+  }, [tourId, navigate]);
 
   /* ================= HELPERS ================= */
 
@@ -113,8 +151,18 @@ function BookAdventure() {
   /* ================= SUBMIT BOOKING ================= */
 
   const handleConfirmBooking = async () => {
+    if (!agreeTerms) {
+      alert("Please agree to the Terms and Conditions before proceeding.");
+      return;
+    }
+
     if (!payment) {
       alert("Please select payment method");
+      return;
+    }
+
+    if (!selectedDate) {
+      alert("Please select a date");
       return;
     }
 
@@ -134,13 +182,12 @@ function BookAdventure() {
       phoneNumber: form.phoneNumber,
     };
 
-    console.log("🚀 BOOKING PAYLOAD:", payload);
-
     try {
-      await axios.post(`${API_BASE}booking/${tourId}`, payload, {});
+      await axios.post(`${API_BASE}booking/${tourId}`, payload);
 
-      alert("✅ Booking successful!");
-      navigate("/tours");
+      // ✅ show modal AFTER success
+      setBookingRef(`BK-${Date.now()}`);
+      setShowSuccess(true);
     } catch (err) {
       console.error(err);
       alert(err?.response?.data?.message || "Booking failed");
@@ -219,6 +266,44 @@ function BookAdventure() {
                     placeholder="Enter your number"
                   />
                 </FormGroup>
+              </CardBody>
+            </Card>
+
+            {/*SELECT A DATE*/}
+            <Card className="mb-4 shadow-sm">
+              <CardBody>
+                <h5 className="fw-bold mb-3">Available Dates</h5>
+
+                {dateRanges.length === 0 ? (
+                  <p className="text-muted">No available dates</p>
+                ) : (
+                  <>
+                    <Label className="fw-semibold mb-2">
+                      Select your preferred date
+                    </Label>
+
+                    <Input
+                      type="select"
+                      value={selectedDateIndex}
+                      onChange={(e) =>
+                        setSelectedDateIndex(Number(e.target.value))
+                      }
+                    >
+                      {dateRanges.map((range, index) => (
+                        <option key={index} value={index}>
+                          {formatDate(range.start)} – {formatDate(range.end)}
+                        </option>
+                      ))}
+                    </Input>
+
+                    <div className="mt-3 text-success fw-semibold">
+                      Selected:
+                      <br />
+                      {formatDate(selectedDate.start)} –{" "}
+                      {formatDate(selectedDate.end)}
+                    </div>
+                  </>
+                )}
               </CardBody>
             </Card>
 
@@ -315,8 +400,12 @@ function BookAdventure() {
                 </p>
 
                 <p>
-                  <strong>Date:</strong> {formatDate(selectedDate.start)} –{" "}
-                  {formatDate(selectedDate.end)}
+                  <strong>Date:</strong>{" "}
+                  {selectedDate
+                    ? `${formatDate(selectedDate.start)} – ${formatDate(
+                        selectedDate.end,
+                      )}`
+                    : "Not selected"}
                 </p>
 
                 <p>
@@ -333,7 +422,7 @@ function BookAdventure() {
                 <Button
                   color="success"
                   className="w-100 mt-3"
-                  disabled={loading}
+                  disabled={loading || !agreeTerms}
                   onClick={handleConfirmBooking}
                 >
                   {loading ? "Processing..." : "Confirm Booking"}
@@ -341,8 +430,94 @@ function BookAdventure() {
               </CardBody>
             </Card>
           </Col>
+          {/* TERMS & CONDITIONS */}
+          <Card className="mb-4 shadow-sm">
+            <CardBody>
+              <FormGroup check>
+                <Input
+                  type="checkbox"
+                  checked={agreeTerms}
+                  onChange={(e) => setAgreeTerms(e.target.checked)}
+                />
+                <Label check className="ms-2">
+                  I hereby read and agree on the{" "}
+                  <span className="text-success fw-semibold">
+                    Terms and Conditions
+                  </span>{" "}
+                  stated by Travelko
+                </Label>
+              </FormGroup>
+
+              <p
+                className="text-muted mt-2 mb-0"
+                style={{ fontSize: "0.85rem" }}
+              >
+                For international Adventure Tours, all payments should be
+                settled
+                <strong> 30 days before </strong>
+                the adventure date.
+              </p>
+            </CardBody>
+          </Card>
         </Row>
       </Container>
+
+      <Modal isOpen={showSuccess} centered backdrop="static" keyboard={false}>
+        <ModalBody className="text-center p-5">
+          {/* ICON */}
+          <FaCheckCircle size={80} className="text-success mb-3" />
+
+          {/* TITLE */}
+          <h4 className="fw-bold mb-2">Request has been sent!</h4>
+
+          <p className="text-muted mb-4">
+            We will review your request within <strong>24 hours</strong>
+          </p>
+
+          {/* QR PLACEHOLDER */}
+          <div className="d-flex justify-content-center mb-3">
+            <QRCodeCanvas
+              value={`https://travelko.site/booking/${bookingRef}`}
+              size={140}
+              bgColor="#ffffff"
+              fgColor="#000000"
+              level="H"
+              includeMargin
+            />
+          </div>
+
+          <p className="text-muted" style={{ fontSize: "0.85rem" }}>
+            Scan for booking details
+          </p>
+
+          <p className="fw-semibold text-success">Reference: {bookingRef}</p>
+
+          <p className="text-muted" style={{ fontSize: "0.85rem" }}>
+            Scan for booking details
+          </p>
+
+          {/* ACTION BUTTONS */}
+          <div className="d-flex justify-content-center gap-3 mt-4">
+            <Button
+              color="success"
+              onClick={() => {
+                setShowSuccess(false);
+                navigate("/tours");
+              }}
+            >
+              Browse More Tours
+            </Button>
+
+            <Button
+              color="secondary"
+              outline
+              onClick={() => setShowSuccess(false)}
+            >
+              Close
+            </Button>
+          </div>
+        </ModalBody>
+      </Modal>
     </>
   );
 }

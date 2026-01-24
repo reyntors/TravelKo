@@ -14,6 +14,9 @@ import {
   Alert,
 } from "reactstrap";
 
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+
 export default function Profile() {
   const green = "#16A34A";
   const border = "#E5E7EB";
@@ -46,8 +49,6 @@ export default function Profile() {
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
-  const [successMsg, setSuccessMsg] = useState("");
 
   const [isEditing, setIsEditing] = useState(false);
 
@@ -55,7 +56,7 @@ export default function Profile() {
   const [profile, setProfile] = useState({
     fullName: "",
     email: "",
-    phone: "",
+    phoneNumber: "",
     address: "",
     bankName: "",
     accountName: "",
@@ -74,45 +75,35 @@ export default function Profile() {
   useEffect(() => {
     const fetchProfile = async () => {
       setLoading(true);
-      setError("");
-      setSuccessMsg("");
 
       try {
-        if (!token) throw new Error("Missing token. Please login again.");
-
         const res = await fetch(`${API_BASE}auth/coordinator`, {
-          method: "GET",
           headers: {
-            Accept: "application/json",
             Authorization: `Bearer ${token}`,
           },
         });
 
-        const data = await res.json().catch(() => null);
-        console.log(data);
+        const data = await res.json();
 
         if (!res.ok) {
-          throw new Error(data?.message || data?.error || `HTTP ${res.status}`);
+          throw new Error(data?.message || "Failed to load profile");
         }
 
-        // ✅ Map backend response into your form fields
-        // Adjust mapping based on backend keys
-        const mapped = {
-          fullName: data?.fullName || data?.fullName || "",
-          gender: data?.gender || data?.gender || "",
-          email: data?.email || "",
-          phoneNumber: data?.phoneNumber || data?.mobileNumber || "",
-          address: data?.address || "",
-          bankName: data?.bankName || "",
-          accountName: data?.accountName || "",
-          accountNumber: data?.accountNumber || data?.accountNumber || "",
-          gcashNumber: data?.gcashNumber || data?.gcash || "",
-        };
+        setProfile({
+          fullName: data.fullName || "",
+          email: data.email || "",
+          phoneNumber: data.phoneNumber || "",
+          address: data.address || "",
+          bankName: data.bankName || "",
+          accountName: data.accountName || "",
+          accountNumber: data.accountNumber || "",
+          gcashNumber: data.gcashNumber || "",
+          gender: data.gender || "",
+        });
 
-        setProfile(mapped);
-        setOriginalProfile(mapped);
+        setOriginalProfile(data);
       } catch (err) {
-        setError(err?.message || "Failed to load profile.");
+        toast.error(err.message || "Failed to load profile");
       } finally {
         setLoading(false);
       }
@@ -126,49 +117,45 @@ export default function Profile() {
   };
 
   const startEdit = () => {
-    setSuccessMsg("");
-    setError("");
+    toast.info("Edit mode enabled");
     setIsEditing(true);
-    setOriginalProfile(profile); // snapshot
+    setOriginalProfile(profile);
   };
 
   const cancelEdit = () => {
-    setSuccessMsg("");
-    setError("");
     if (originalProfile) setProfile(originalProfile);
     setIsEditing(false);
+    toast.info("Changes discarded");
   };
 
   const saveProfile = async () => {
     setSaving(true);
-    setError("");
-    setSuccessMsg("");
 
     try {
-      if (!token) throw new Error("Missing token. Please login again.");
-
       const res = await fetch(`${API_BASE}auth/coordinator`, {
-        method: "PUT", // or PATCH depending on backend
+        method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          Accept: "application/json",
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(profile),
       });
 
-      const data = await res.json().catch(() => null);
+      const text = await res.text(); // backend returns plain text
+      console.log("SERVER RESPONSE:", text);
 
       if (!res.ok) {
-        throw new Error(data?.message || data?.error || `HTTP ${res.status}`);
+        // backend sends error as text too
+        throw new Error(text || "Failed to save profile");
       }
 
-      // If backend returns updated profile, map it again (optional)
+      // ✅ SUCCESS
       setOriginalProfile(profile);
       setIsEditing(false);
-      setSuccessMsg("Profile updated successfully.");
+      toast.success("Profile updated successfully!");
     } catch (err) {
-      setError(err?.message || "Failed to save changes.");
+      console.error(err);
+      toast.error(err.message || "Failed to save changes");
     } finally {
       setSaving(false);
     }
@@ -226,18 +213,6 @@ export default function Profile() {
         </Col>
       </Row>
 
-      {error && (
-        <Alert color="danger" style={{ borderRadius: 12 }}>
-          {error}
-        </Alert>
-      )}
-
-      {successMsg && (
-        <Alert color="success" style={{ borderRadius: 12 }}>
-          {successMsg}
-        </Alert>
-      )}
-
       {/* PROFILE INFORMATION */}
       <Card style={cardStyle} className="mb-4">
         <CardBody>
@@ -250,10 +225,9 @@ export default function Profile() {
                   <Label>Full Name</Label>
                   <Input
                     value={profile.fullName}
-                    onChange={onChange("firstName")}
+                    onChange={onChange("fullName")}
                     disabled={!isEditing}
                     style={!isEditing ? disabledInputStyle : enabledInputStyle}
-                    placeholder="First name"
                   />
                 </FormGroup>
               </Col>
@@ -267,7 +241,6 @@ export default function Profile() {
                     onChange={onChange("email")}
                     disabled={!isEditing}
                     style={!isEditing ? disabledInputStyle : enabledInputStyle}
-                    placeholder="Email"
                   />
                 </FormGroup>
               </Col>
@@ -277,10 +250,9 @@ export default function Profile() {
                   <Label>Phone Number</Label>
                   <Input
                     value={profile.phoneNumber}
-                    onChange={onChange("phone")}
+                    onChange={onChange("phoneNumber")}
                     disabled={!isEditing}
                     style={!isEditing ? disabledInputStyle : enabledInputStyle}
-                    placeholder="+63 9XX XXX XXXX"
                   />
                 </FormGroup>
               </Col>
@@ -295,6 +267,24 @@ export default function Profile() {
                     style={!isEditing ? disabledInputStyle : enabledInputStyle}
                     placeholder="City, Province, Philippines"
                   />
+                </FormGroup>
+              </Col>
+              <Col xs="12" md="6">
+                <FormGroup>
+                  <Label>Gender</Label>
+                  <Input
+                    type="select"
+                    value={profile.gender}
+                    onChange={onChange("gender")}
+                    disabled={!isEditing}
+                    style={!isEditing ? disabledInputStyle : enabledInputStyle}
+                  >
+                    <option value="">Select gender</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Other">Other</option>
+                    <option value="Prefer not to say">Prefer not to say</option>
+                  </Input>
                 </FormGroup>
               </Col>
             </Row>
@@ -317,7 +307,6 @@ export default function Profile() {
                     onChange={onChange("bankName")}
                     disabled={!isEditing}
                     style={!isEditing ? disabledInputStyle : enabledInputStyle}
-                    placeholder="BDO / BPI / UnionBank"
                   />
                 </FormGroup>
               </Col>
@@ -330,7 +319,6 @@ export default function Profile() {
                     onChange={onChange("accountName")}
                     disabled={!isEditing}
                     style={!isEditing ? disabledInputStyle : enabledInputStyle}
-                    placeholder="Account name"
                   />
                 </FormGroup>
               </Col>
@@ -340,10 +328,9 @@ export default function Profile() {
                   <Label>Bank Account Number</Label>
                   <Input
                     value={profile.accountNumber}
-                    onChange={onChange("bankAccountNumber")}
+                    onChange={onChange("accountNumber")}
                     disabled={!isEditing}
                     style={!isEditing ? disabledInputStyle : enabledInputStyle}
-                    placeholder="XXXX XXXX XXXX"
                   />
                 </FormGroup>
               </Col>
@@ -356,7 +343,6 @@ export default function Profile() {
                     onChange={onChange("gcashNumber")}
                     disabled={!isEditing}
                     style={!isEditing ? disabledInputStyle : enabledInputStyle}
-                    placeholder="09XX XXX XXXX"
                   />
                 </FormGroup>
               </Col>
@@ -437,6 +423,15 @@ export default function Profile() {
           )}
         </CardBody>
       </Card>
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop
+        closeOnClick
+        pauseOnHover
+        theme="light"
+      />
     </Container>
   );
 }
