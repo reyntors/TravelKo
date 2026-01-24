@@ -365,8 +365,7 @@ function Home() {
                           color="success"
                           size="sm"
                           tag={NavLink}
-                          to={`/book`}
-                          state={{ tourId: tour.id }}
+                          to={`/tours/details/${tour.id}`}
                         >
                           Book Now
                         </Button>
@@ -374,10 +373,10 @@ function Home() {
                         {/* VIEW DETAILS */}
                         <Button
                           outline
-                          color="secondary"
+                          color="success"
                           size="sm"
                           tag={NavLink}
-                          to={`/tours/${tour.id}`}
+                          to={`/tours/details/${tour.id}`}
                         >
                           View Details
                         </Button>

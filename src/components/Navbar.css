@@ -3,7 +3,6 @@
   top: 0;
   left: 0;
 
-
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -15,21 +14,20 @@
 
 /* Logo */
 .logo {
-  color: #16A34A;
+  color: #16a34a;
   font-size: 20px;
-  font-family: 'Pacifico', cursive;
+  font-family: "Pacifico", cursive;
   font-weight: 400;
 }
 
 .nav-links {
   list-style: none;
   display: flex;
-  align-items: center;   /* 👈 THIS FIXES IT */
+  align-items: center; /* 👈 THIS FIXES IT */
   gap: 50px;
   padding-right: 5rem;
-  font-family: 'Poppins', sans-serif;
+  font-family: "Poppins", sans-serif;
 }
-
 
 /* Nav links */
 .nav-links a {
@@ -43,12 +41,12 @@
 
 /* Hover color */
 .nav-links a:hover {
-  color: #4ADE80;
+  color: #4ade80;
 }
 
 /* Active link */
 .nav-links a.active {
-  color: #4ADE80;
+  color: #4ade80;
   font-weight: 500;
 }
 
@@ -61,7 +59,7 @@
 
   width: 0;
   height: 2px;
-  background-color: #4ADE80;
+  background-color: #4ade80;
   transition: width 0.3s ease;
 }
 
@@ -73,12 +71,14 @@
 .button {
   display: inline-block;
   padding: 0.5rem 1.25rem;
-  background-color: #4ADE80;
+  background-color: #4ade80;
   border-radius: 1rem;
   color: #ffffff;
   font-weight: 600;
   text-decoration: none;
-  transition: background-color 0.2s ease, transform 0.1s ease;
+  transition:
+    background-color 0.2s ease,
+    transform 0.1s ease;
 }
 
 .button:hover {
@@ -88,4 +88,3 @@
 .button:active {
   transform: scale(0.97);
 }
-

@@ -43,13 +43,14 @@ export default function CoordinatorTours() {
     title: "",
     category: "Mountain Climbing",
     address: "",
+    meetupLocations: "",
     details: "",
     packageInclusions: "",
     itinerary: [[""]],
     thingsToBring: "",
     joinerPrice: "",
     joinerMaxSlots: "",
-    privateBookingPrice: 1500,
+    privateBookingPrice: "",
     pictures: [],
   });
 
@@ -179,30 +180,6 @@ export default function CoordinatorTours() {
 
     setLoading(true);
 
-    // ✅ BUILD PAYLOAD FIRST (PLAIN OBJECT)
-    // const payload = {
-    //   title: form.title,
-    //   category: form.category,
-    //   address: form.address,
-    //   details: form.details,
-
-    //   availableDates: [
-    //     [
-    //       toStartOfDayISO(dateRange.startDate),
-    //       toEndOfDayISO(dateRange.endDate),
-    //     ],
-    //   ],
-
-    //   meetupLocations: [form.address],
-    //   packageInclusions: form.packageInclusions.split(",").map((i) => i.trim()),
-
-    //   itinerary: form.itinerary,
-    //   thingsToBring: form.thingsToBring.split("\n").map((i) => i.trim()),
-
-    //   joinerPrice: Number(form.joinerPrice),
-    //   joinerMaxSlots: Number(form.joinerMaxSlots),
-    // };
-
     const fd = new FormData();
 
     fd.append("title", form.title);
@@ -219,7 +196,16 @@ export default function CoordinatorTours() {
 
     fd.append("availableDates", JSON.stringify(availableDatesPayload));
 
-    fd.append("meetupLocations", JSON.stringify([form.address]));
+    fd.append(
+      "meetupLocations",
+      JSON.stringify(
+        form.meetupLocations
+          .split(",")
+          .map((m) => m.trim())
+          .filter(Boolean),
+      ),
+    );
+
     fd.append(
       "packageInclusions",
       JSON.stringify(form.packageInclusions.split(",").map((i) => i.trim())),
@@ -236,6 +222,7 @@ export default function CoordinatorTours() {
 
     form.pictures.forEach((file) => fd.append("pictures", file));
 
+    console.log("My Payload", form.address);
     try {
       await axios.post(`${API_BASE}tours/create`, fd, {
         headers: { Authorization: `Bearer ${token}` },
@@ -423,19 +410,40 @@ export default function CoordinatorTours() {
             </FormGroup>
 
             <FormGroup>
-              <Label>Address / Meetup *</Label>
+              <Label>Address *</Label>
               <Input
                 value={form.address}
                 onChange={onChange("address")}
+                placeholder="Tour address / general location"
                 required
+              />
+            </FormGroup>
+
+            <FormGroup>
+              <Label>Meetup Locations (comma separated)</Label>
+              <Input
+                value={form.meetupLocations}
+                onChange={onChange("meetupLocations")}
+                placeholder="MOA, Pasig Covered Court"
               />
             </FormGroup>
 
             <FormGroup>
               <Label>Available Dates *</Label>
 
+              {/* Column labels */}
+              <Row className="mb-1">
+                <Col md="5">
+                  <Label className="small fw-semibold">Start Date</Label>
+                </Col>
+                <Col md="5">
+                  <Label className="small fw-semibold">End Date</Label>
+                </Col>
+              </Row>
+
               {dateRanges.map((range, index) => (
                 <Row key={index} className="align-items-end mb-2">
+                  {/* START DATE */}
                   <Col md="5">
                     <Input
                       type="date"
@@ -447,6 +455,7 @@ export default function CoordinatorTours() {
                     />
                   </Col>
 
+                  {/* END DATE */}
                   <Col md="5">
                     <Input
                       type="date"
@@ -459,6 +468,7 @@ export default function CoordinatorTours() {
                     />
                   </Col>
 
+                  {/* REMOVE BUTTON */}
                   <Col md="2">
                     {dateRanges.length > 1 && (
                       <Button
@@ -596,6 +606,17 @@ export default function CoordinatorTours() {
                 </FormGroup>
               </Col>
             </Row>
+
+            <FormGroup>
+              <Label>Private Booking Price</Label>
+              <Input
+                type="number"
+                value={form.privateBookingPrice}
+                onChange={onChange("privateBookingPrice")}
+                placeholder="Price for private booking"
+                required
+              />
+            </FormGroup>
 
             {/* IMAGE UPLOAD */}
             <FormGroup>
