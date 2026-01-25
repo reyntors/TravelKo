@@ -113,21 +113,34 @@ export default function Tours() {
   const filteredTours = useMemo(() => {
     let list = [...tours];
 
-    const qLocation = normalize(applied.location);
-    const qType = normalize(applied.adventureType);
+    const qLocation = normalize(location);
+    const qType = normalize(adventureType);
+    const qDate = normalize(date);
 
+    // LOCATION FILTER
     if (qLocation) {
       list = list.filter((t) => normalize(t.address).includes(qLocation));
     }
 
+    // ADVENTURE TYPE FILTER
     if (qType && qType !== "all") {
-      list = list.filter((t) =>
-        normalize(t.category).includes(qType.replace("-", " ")),
-      );
+      list = list.filter((t) => normalize(t.category).includes(qType));
+    }
+
+    // DATE FILTER (basic string match)
+    if (qDate) {
+      list = list.filter((t) => {
+        const parsed = parseAvailableDates(t.availableDates);
+        if (!parsed) return false;
+
+        const rangeText =
+          `${formatDate(parsed.start)} ${formatDate(parsed.end)}`.toLowerCase();
+        return rangeText.includes(qDate);
+      });
     }
 
     return list;
-  }, [applied, tours]);
+  }, [tours, location, adventureType, date]);
 
   /* ================= ACTIONS ================= */
 
@@ -281,154 +294,235 @@ export default function Tours() {
         </div>{" "}
       </section>
 
-      {/* SEARCH */}
       <section style={{ padding: "3rem 0", background: "#F9FAFB" }}>
-        <Container>
-          <Form onSubmit={handleSearch}>
-            <Row className="g-3 align-items-end">
-              <Col md="4">
-                <FormGroup>
-                  <Label>Date</Label>
-                  <Input
-                    placeholder="Any"
-                    value={date}
-                    onChange={(e) => setDate(e.target.value)}
-                  />
-                </FormGroup>
-              </Col>
-              <Col md="4">
-                <FormGroup>
-                  <Label>Location</Label>
-                  <Input
-                    placeholder="Enter location"
-                    value={location}
-                    onChange={(e) => setLocation(e.target.value)}
-                  />
-                </FormGroup>
-              </Col>
-              <Col md="4">
-                <FormGroup>
-                  <Label>Adventure Type</Label>
-                  <Input
-                    type="select"
-                    value={adventureType}
-                    onChange={(e) => setAdventureType(e.target.value)}
-                  >
-                    <option value="all">All</option>
-                    <option value="Mountain">Mountain Climbing</option>
-                    <option value="Island">Island Hopping</option>
-                    <option value="Scuba">Scuba Diving</option>
-                    <option value="Camping">Camping</option>
-                    <option value="Hiking">Hiking</option>
-                  </Input>
-                </FormGroup>
-              </Col>
-            </Row>
-
-            <Row className="mt-3">
-              <Col className="d-flex gap-2">
-                <Button color="secondary" type="button" onClick={clearAll}>
-                  Clear
-                </Button>
-                <Button color="success" type="submit">
-                  Search
-                </Button>
-              </Col>
-            </Row>
-          </Form>
-        </Container>
-      </section>
-
-      {/* TOURS */}
-      <section style={{ padding: "3rem 0" }}>
-        <Container>
-          <h2 className="fw-bold text-center mb-3">Available Tours</h2>
-          <p className="text-center text-muted mb-4">
-            {filteredTours.length} tours found
-          </p>
-
+        <Container fluid="lg">
           <Row className="g-4">
-            {filteredTours.map((tour) => {
-              const dates = parseAvailableDates(tour.availableDates);
+            {/* ================= LEFT SEARCH PANEL ================= */}
+            <Col md="3">
+              <Card className="shadow-sm sticky-top" style={{ top: 90 }}>
+                <CardBody>
+                  <div className="d-flex justify-content-between align-items-center mb-3">
+                    <h6 className="fw-bold mb-0">Search Tours</h6>
+                    <Button
+                      color="link"
+                      className="p-0 text-success"
+                      onClick={clearAll}
+                    >
+                      Clear All
+                    </Button>
+                  </div>
 
-              return (
-                <Col md="6" lg="4" key={tour.id}>
-                  <Card
-                    className="h-100 shadow-sm"
-                    style={{ borderRadius: 16 }}
-                  >
-                    <CardImg
-                      top
-                      src={tour.pictureUrls?.[0] || "/fallback.jpg"}
-                      alt={tour.title}
-                      style={{ height: 220, objectFit: "cover" }}
-                    />
+                  <Form onSubmit={handleSearch}>
+                    {/* DATE */}
+                    <FormGroup className="mb-3">
+                      <Label className="small fw-semibold">
+                        Search by Date
+                      </Label>
+                      <Input
+                        placeholder="e.g. May 1 - May 15"
+                        value={date}
+                        onChange={(e) => setDate(e.target.value)}
+                      />
+                      <small className="text-muted">
+                        Format: Month Day – Month Day
+                      </small>
+                    </FormGroup>
 
-                    <CardBody>
-                      <div className="d-flex justify-content-between mb-2">
-                        <span className="badge bg-success">
-                          {tour.category}
-                        </span>
-                        <Button
-                          size="sm"
-                          color="light"
-                          onClick={() => copyTourLink(tour)}
-                        >
-                          <FaShareAlt />
-                        </Button>
+                    {/* LOCATION */}
+                    <FormGroup className="mb-3">
+                      <Label className="small fw-semibold">
+                        Search by Location
+                      </Label>
+                      <Input
+                        placeholder="e.g. Mt. Pinatubo"
+                        value={location}
+                        onChange={(e) => setLocation(e.target.value)}
+                      />
+                    </FormGroup>
+
+                    {/* POPULAR LOCATIONS */}
+                    <div className="mb-3">
+                      <Label className="small fw-semibold">
+                        Popular Locations
+                      </Label>
+                      <div className="d-flex flex-column gap-1 mt-2">
+                        {[
+                          "Mount Pinatubo",
+                          "El Nido, Palawan",
+                          "Bohol",
+                          "Baguio",
+                          "Mount Pulag",
+                          "Boracay",
+                          "Siargao",
+                          "Cebu",
+                        ].map((loc) => (
+                          <Button
+                            key={loc}
+                            color=""
+                            className="p-0 text-start text-success"
+                            onClick={() => setLocation(loc)}
+                          >
+                            {loc}
+                          </Button>
+                        ))}
                       </div>
+                    </div>
 
-                      <h5 className="fw-bold">{tour.title}</h5>
-                      <p className="text-muted mb-1">{tour.address}</p>
+                    {/* ADVENTURE TYPE */}
+                    <FormGroup className="mb-4">
+                      <Label className="small fw-semibold">
+                        Adventure Type
+                      </Label>
+                      <Input
+                        type="select"
+                        value={adventureType}
+                        onChange={(e) => setAdventureType(e.target.value)}
+                      >
+                        <option value="all">All Types</option>
+                        <option value="Mountain">Mountain Climbing</option>
+                        <option value="Island">Island Hopping</option>
+                        <option value="Scuba">Scuba Diving</option>
+                        <option value="Camping">Camping</option>
+                        <option value="Hiking">Hiking</option>
+                      </Input>
+                    </FormGroup>
 
-                      <p className="small">
-                        {dates
-                          ? `${formatDate(dates.start)} – ${formatDate(
-                              dates.end,
-                            )}`
-                          : "—"}
-                      </p>
+                    {/* <Button color="success" className="w-100" type="submit">
+                      Search
+                    </Button> */}
+                  </Form>
+                </CardBody>
+              </Card>
+            </Col>
 
-                      <p className="small text-muted">{tour.details}</p>
+            {/* ================= RIGHT TOUR LIST ================= */}
+            <Col md="9">
+              <div className="mb-4">
+                <h4 className="fw-bold mb-1">Available Tours</h4>
+                <p className="text-muted mb-0">
+                  {filteredTours.length} tours found
+                </p>
+              </div>
 
-                      <div className="d-flex justify-content-between align-items-center mt-3">
-                        <div className="fw-bold text-success">
-                          ₱{Number(tour.joinerPrice).toLocaleString()}
-                          <small className="text-muted">
-                            {" "}
-                            / pax • {tour.joinerMaxSlots} slots
-                          </small>
-                        </div>
-                        <div className="text-warning">
-                          <FaStar /> 4.8
-                        </div>
-                      </div>
+              <div className="d-flex flex-column gap-4">
+                {filteredTours.map((tour) => {
+                  const dates = parseAvailableDates(tour.availableDates);
 
-                      <div className="d-flex gap-2 mt-3">
-                        <Button
-                          color="success"
-                          className="w-100"
-                          onClick={() => bookNow(tour)}
-                        >
-                          Book Now
-                        </Button>
-                        <Button
-                          outline
-                          color="success"
-                          className="w-100"
-                          onClick={() => openDetails(tour)}
-                        >
-                          View Details
-                        </Button>
-                      </div>
-                    </CardBody>
-                  </Card>
-                </Col>
-              );
-            })}
+                  return (
+                    <Card
+                      key={tour.id}
+                      className="shadow-sm"
+                      style={{ borderRadius: 16 }}
+                    >
+                      <Row className="g-0">
+                        {/* IMAGE */}
+                        <Col md="5">
+                          <img
+                            src={tour.pictureUrls?.[0] || "/fallback.jpg"}
+                            alt={tour.title}
+                            style={{
+                              width: "100%",
+                              height: "100%",
+                              objectFit: "cover",
+                              borderRadius: "16px 0 0 16px",
+                            }}
+                          />
+                        </Col>
+
+                        {/* CONTENT */}
+                        <Col md="7">
+                          <CardBody>
+                            <div className="d-flex justify-content-between mb-2">
+                              <span
+                                style={{
+                                  backgroundColor: "#b2ffcf",
+                                  color: "#16A34A",
+                                  padding: "4px 10px",
+                                  borderRadius: 12,
+                                  fontSize: 12,
+                                  fontWeight: 600,
+                                  lineHeight: 1,
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                }}
+                              >
+                                {tour.category}
+                              </span>
+                              <div
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: 4,
+                                  fontSize: 15,
+                                  fontWeight: 600,
+                                  color: "#F59E0B",
+                                  marginRight: "15rem",
+                                }}
+                              >
+                                <FaStar size={12} />
+                                4.8
+                              </div>
+
+                              <Button
+                                size="sm"
+                                color="light"
+                                onClick={() => copyTourLink(tour)}
+                              >
+                                <FaShareAlt />
+                              </Button>
+                            </div>
+
+                            <h5 className="fw-bold">{tour.title}</h5>
+
+                            <p className="text-muted mb-1">{tour.address}</p>
+
+                            <p className="small mb-2">
+                              {dates
+                                ? `${formatDate(dates.start)} – ${formatDate(
+                                    dates.end,
+                                  )}`
+                                : "—"}
+                            </p>
+
+                            <p className="small text-muted">{tour.details}</p>
+
+                            <div className="d-flex justify-content-between align-items-center mt-3">
+                              <div className="fw-bold text-success">
+                                ₱{Number(tour.joinerPrice).toLocaleString()}
+                                <small className="text-muted">
+                                  {" "}
+                                  / pax • {tour.joinerMaxSlots} slots
+                                </small>
+                              </div>
+                            </div>
+
+                            <div className="d-flex gap-2 mt-3">
+                              <Button
+                                color="success"
+                                onClick={() => bookNow(tour)}
+                              >
+                                Book Now
+                              </Button>
+
+                              <Button
+                                outline
+                                color="success"
+                                onClick={() => openDetails(tour)}
+                              >
+                                View Details
+                              </Button>
+                            </div>
+                          </CardBody>
+                        </Col>
+                      </Row>
+                    </Card>
+                  );
+                })}
+              </div>
+
+              {loading && <p className="text-center mt-4">Loading tours...</p>}
+            </Col>
           </Row>
-
-          {loading && <p className="text-center mt-4">Loading tours...</p>}
         </Container>
       </section>
     </>

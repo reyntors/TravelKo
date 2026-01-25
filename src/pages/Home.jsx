@@ -238,7 +238,7 @@ function Home() {
             <h1
               style={{
                 fontFamily: "Poppins",
-                fontWeight: 700,
+                fontWeight: 600,
                 fontSize: "clamp(1.8rem, 3.2vw, 3rem)",
                 color: "#fff",
                 lineHeight: 1.15,
@@ -246,12 +246,12 @@ function Home() {
               }}
             >
               Discover Your Next <br />
-              <span style={{ color: "#00ff5e" }}>Adventure</span> with{" "}
+              <span style={{ color: "#16A34A" }}>Adventure</span> with{" "}
               <span
                 style={{
                   fontFamily: "Pacifico",
-                  fontWeight: 400,
-                  color: "#00ff5e",
+                  fontWeight: 300,
+                  color: "#16A34A",
                 }}
               >
                 TravelKo
@@ -276,11 +276,11 @@ function Home() {
                   color="success"
                   style={{
                     width: "100%",
-                    maxWidth: 420, // ✅ stops huge button on large screens
+                    maxWidth: 420,
                     padding: "12px 28px",
                     borderRadius: 999,
                     fontWeight: 700,
-                    whiteSpace: "nowrap", // ✅ no “Explore” on top / “Tours” below
+                    whiteSpace: "nowrap",
                   }}
                   className="w-100"
                 >
