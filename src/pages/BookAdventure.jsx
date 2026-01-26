@@ -511,7 +511,10 @@ function BookAdventure() {
             <Button
               color="secondary"
               outline
-              onClick={() => setShowSuccess(false)}
+              onClick={() => {
+                setShowSuccess(false);
+                navigate("/tours");
+              }}
             >
               Close
             </Button>

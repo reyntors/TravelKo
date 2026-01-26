@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import {
   Container,
   Row,
@@ -14,6 +14,7 @@ import {
   DropdownItem,
 } from "reactstrap";
 import { FaSearch, FaEye, FaCheck, FaTimes } from "react-icons/fa";
+import axios from "axios";
 
 export default function Bookings() {
   const green = "#16A34A";
@@ -25,49 +26,58 @@ export default function Bookings() {
   const [filter, setFilter] = useState("all");
   const [openFilter, setOpenFilter] = useState(false);
 
-  const initialBookings = useMemo(
-    () => [
-      {
-        id: "BKG-1001",
-        tourTitle: "Mt. Pinatubo Crater Lake Trek",
-        customer: "Clifford Halasan",
-        tourDate: "2024-02-15",
-        type: "Join a group",
-        amount: 2500,
-        status: "confirmed",
-      },
-      {
-        id: "BKG-1002",
-        tourTitle: "Palawan Island Hopping",
-        customer: "Mary Grace Gallardo",
-        tourDate: "2024-03-01",
-        type: "Private tour",
-        amount: 8900,
-        status: "pending",
-      },
-      {
-        id: "BKG-1003",
-        tourTitle: "Scuba Diving Experience",
-        customer: "Karl Borromeo",
-        tourDate: "2024-02-20",
-        type: "Join a group",
-        amount: 6200,
-        status: "pending",
-      },
-      {
-        id: "BKG-1004",
-        tourTitle: "Mount Pinatubo Trek",
-        customer: "James Perez",
-        tourDate: "2024-02-28",
-        type: "Private tour",
-        amount: 3500,
-        status: "cancelled",
-      },
-    ],
-    [],
-  );
+  const [bookings, setBookings] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const [bookings, setBookings] = useState(initialBookings);
+  useEffect(() => {
+    const fetchBookings = async () => {
+      try {
+        setLoading(true);
+
+        const token = localStorage.getItem("auth_token");
+
+        const res = await axios.get(
+          `${import.meta.env.VITE_API_BASE_URL}booking`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          },
+        );
+
+        // ✅ Axios response data
+        const data = res.data;
+
+        const coordinator = JSON.parse(
+          localStorage.getItem("auth_user") || "{}",
+        );
+
+        const myBookings = Array.isArray(data)
+          ? data.filter((b) => b?.tour?.coordinatorId === coordinator?.id)
+          : [];
+
+        // 🔄 Normalize data for UI
+        const normalized = myBookings.map((b) => ({
+          id: b.id,
+          tourTitle: b.tour?.title || "—",
+          customer: b.booker?.fullName ?? "—", // ✅ FIXED
+          tourDate: b.bookingDateSelected || "—",
+          type: b.bookingType === "joiner" ? "Join a group" : "Private tour",
+          amount: Number(b.amountPaid || 0),
+          status: b.status || "pending",
+        }));
+
+        setBookings(normalized);
+      } catch (err) {
+        console.error(err);
+        alert(err.response?.data?.message || "Failed to load bookings");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchBookings();
+  }, []);
 
   const formatPeso = (n) =>
     new Intl.NumberFormat("en-PH", {
@@ -122,10 +132,28 @@ export default function Bookings() {
     return matchesQuery && matchesFilter;
   });
 
-  const setStatus = (id, status) => {
-    setBookings((prev) =>
-      prev.map((b) => (b.id === id ? { ...b, status } : b)),
-    );
+  const updateStatus = async (id, status) => {
+    try {
+      const token = localStorage.getItem("auth_token");
+
+      await axios.patch(
+        `${import.meta.env.VITE_API_BASE_URL}booking/${id}`,
+        { status }, // ✅ ONLY update status
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      // ✅ Update UI immediately after success
+      setBookings((prev) =>
+        prev.map((b) => (b.id === id ? { ...b, status } : b)),
+      );
+    } catch (err) {
+      console.error(err);
+      alert(err.response?.data?.message || "Failed to update booking status");
+    }
   };
 
   const handleView = (b) => {
@@ -141,6 +169,14 @@ export default function Bookings() {
     borderRadius: 16,
     boxShadow: "0 1px 0 rgba(0,0,0,0.02)",
   };
+
+  if (loading) {
+    return (
+      <Container fluid>
+        <p className="text-center mt-5">Loading bookings...</p>
+      </Container>
+    );
+  }
 
   return (
     <Container fluid style={{ fontFamily: "Poppins" }}>
@@ -194,7 +230,7 @@ export default function Bookings() {
                   <span style={{ textTransform: "capitalize" }}>{filter}</span>
                 </DropdownToggle>
 
-                <DropdownMenu end style={{ zIndex: 1300}}>
+                <DropdownMenu end style={{ zIndex: 1300 }}>
                   <DropdownItem onClick={() => setFilter("all")}>
                     All bookings
                   </DropdownItem>
@@ -280,7 +316,7 @@ export default function Bookings() {
                         <Button
                           size="sm"
                           color="success"
-                          onClick={() => setStatus(b.id, "confirmed")}
+                          onClick={() => updateStatus(b.id, "confirmed")}
                           style={{
                             borderRadius: 10,
                             background: green,
@@ -298,7 +334,7 @@ export default function Bookings() {
                         <Button
                           size="sm"
                           color="danger"
-                          onClick={() => setStatus(b.id, "cancelled")}
+                          onClick={() => updateStatus(b.id, "cancelled")}
                           style={{
                             borderRadius: 10,
                             display:
@@ -392,7 +428,7 @@ export default function Bookings() {
                     {b.status !== "confirmed" && (
                       <Button
                         size="sm"
-                        onClick={() => setStatus(b.id, "confirmed")}
+                        onClick={() => updateStatus(b.id, "confirmed")}
                         style={{
                           borderRadius: 10,
                           background: green,
@@ -408,7 +444,7 @@ export default function Bookings() {
                       <Button
                         size="sm"
                         color="danger"
-                        onClick={() => setStatus(b.id, "cancelled")}
+                        onClick={() => updateStatus(b.id, "cancelled")}
                         style={{ borderRadius: 10 }}
                       >
                         <FaTimes style={{ marginRight: 6 }} />

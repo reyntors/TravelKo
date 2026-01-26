@@ -84,9 +84,34 @@ export default function AdventureDetails() {
   const [loading, setLoading] = useState(true);
   const [imageIndex, setImageIndex] = useState(0);
   // const [selectedDateIndex, setSelectedDateIndex] = useState(0);
+  // const [reviews, setReviews] = useState([]);
+  // const [loadingReviews, setLoadingReviews] = useState(true);
+
+  // const [showReviewModal, setShowReviewModal] = useState(false);
+
+  // const [reviewForm, setReviewForm] = useState({
+  //   fullName: "",
+  //   rating: 5,
+  //   content: "",
+  // });
+
+  /* ================= FETCH REVIEWS ================= */
+  // useEffect(() => {
+  //   const fetchReviews = async () => {
+  //     try {
+  //       const res = await axios.get(`${API_BASE}reviews/${id}`);
+  //       setReviews(res.data || []);
+  //     } catch (err) {
+  //       console.error("Failed to fetch reviews", err);
+  //     } finally {
+  //       setLoadingReviews(false);
+  //     }
+  //   };
+
+  //   fetchReviews();
+  // }, [id]);
 
   /* ================= FETCH TOUR ================= */
-
   useEffect(() => {
     const fetchTour = async () => {
       try {
@@ -251,47 +276,6 @@ export default function AdventureDetails() {
             </Card>
           </Col>
         </Row>
-
-        {/* ================= AVAILABLE DATES ================= */}
-        {/* <Row className="mb-5">
-          <Col>
-            <h4 className="fw-bold">Available Dates</h4>
-
-            <Card className="mt-3">
-              <CardBody>
-                {dateRanges.length === 0 ? (
-                  <p className="text-muted">No available dates</p>
-                ) : (
-                  <>
-                    <label className="fw-semibold mb-2">
-                      Select your preferred date
-                    </label>
-
-                    <select
-                      className="form-select"
-                      value={selectedDateIndex}
-                      onChange={(e) =>
-                        setSelectedDateIndex(Number(e.target.value))
-                      }
-                    >
-                      {dateRanges.map((range, index) => (
-                        <option key={index} value={index}>
-                          {formatRange(range)}
-                        </option>
-                      ))}
-                    </select>
-
-                    <div className="mt-3 text-success fw-semibold">
-                      Selected:
-                      <br />
-                      {formatRange(dateRanges[selectedDateIndex])}
-                    </div>
-                  </>
-                )}
-              </CardBody>
-            </Card>
-          </Col>
-        </Row> */}
 
         {/* ================= INCLUDED / BRING ================= */}
         <Row className="mb-5">

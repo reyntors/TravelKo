@@ -1,17 +1,132 @@
 import React from "react";
-import { Container, Row, Col, Card, CardBody, Badge } from "reactstrap";
+import { Container, Row, Col, Card, CardBody, Badge, Button } from "reactstrap";
 import {
   FaMapMarkerAlt,
   FaCalendarAlt,
   FaMoneyBillWave,
   FaStar,
 } from "react-icons/fa";
-
+import axios from "axios";
+import { useEffect, useState } from "react";
+import { Modal, ModalHeader, ModalBody, ModalFooter } from "reactstrap";
 
 export default function Dashboard() {
+  const [recentBookings, setRecentBookings] = useState([]);
+  const [viewOpen, setViewOpen] = useState(false);
+  const [selectedBooking, setSelectedBooking] = useState(null);
+  const [stats, setStats] = useState({
+    totalTours: 0,
+    activeBookings: 0,
+    totalRevenue: 0,
+    avgRating: 0, // placeholder for now
+  });
+
+  useEffect(() => {
+    const fetchDashboardStats = async () => {
+      try {
+        const token = localStorage.getItem("auth_token");
+        const coordinator = JSON.parse(
+          localStorage.getItem("auth_user") || "{}",
+        );
+
+        const headers = {
+          Authorization: `Bearer ${token}`,
+        };
+
+        // Fetch tours + bookings in parallel
+        const [toursRes, bookingsRes] = await Promise.all([
+          axios.get(`${import.meta.env.VITE_API_BASE_URL}tours`, { headers }),
+          axios.get(`${import.meta.env.VITE_API_BASE_URL}booking`, { headers }),
+        ]);
+
+        const tours = toursRes.data || [];
+        const bookings = bookingsRes.data || [];
+
+        // ✅ Only YOUR tours
+        const myTours = tours.filter((t) => t.coordinatorId === coordinator.id);
+
+        // ✅ Only bookings for YOUR tours
+        const myBookings = bookings.filter(
+          (b) => b?.tour?.coordinatorId === coordinator.id,
+        );
+
+        const activeBookings = myBookings.filter(
+          (b) => b.status === "pending" || b.status === "confirmed",
+        );
+
+        const totalRevenue = myBookings
+          .filter((b) => b.status === "confirmed")
+          .reduce((sum, b) => sum + Number(b.amountPaid || 0), 0);
+
+        setStats({
+          totalTours: myTours.length,
+          activeBookings: activeBookings.length,
+          totalRevenue,
+          avgRating: 4.8, // 🔜 replace when reviews API exists
+        });
+      } catch (err) {
+        console.error("Failed to load dashboard stats", err);
+      }
+    };
+
+    fetchDashboardStats();
+  }, []);
+
+  const openViewModal = (booking) => {
+    setSelectedBooking(booking);
+    setViewOpen(true);
+  };
+
+  useEffect(() => {
+    const fetchRecentBookings = async () => {
+      try {
+        const token = localStorage.getItem("auth_token");
+        const coordinator = JSON.parse(
+          localStorage.getItem("auth_user") || "{}",
+        );
+
+        const res = await axios.get(
+          `${import.meta.env.VITE_API_BASE_URL}booking`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          },
+        );
+
+        const myBookings = res.data.filter(
+          (b) => b?.tour?.coordinatorId === coordinator?.id,
+        );
+
+        const sorted = myBookings.sort(
+          (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
+        );
+
+        const recent = sorted.slice(0, 5).map((b) => ({
+          id: b.id,
+          title: b.tour?.title || "—",
+          name: b.booker?.fullName || "—",
+          date: b.bookingDateSelected || "—",
+          price: new Intl.NumberFormat("en-PH", {
+            style: "currency",
+            currency: "PHP",
+            maximumFractionDigits: 0,
+          }).format(b.amountPaid || 0),
+          status: b.status || "pending",
+        }));
+
+        setRecentBookings(recent);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
+    fetchRecentBookings();
+  }, []);
+
   const green = "#16A34A";
   const border = "#E5E7EB";
-  const muted = "#6B7280";
+  const muted = "#806c6b";
   const text = "#111827";
 
   const statCardStyle = {
@@ -34,100 +149,69 @@ export default function Dashboard() {
     flex: "0 0 auto",
   };
 
-  const stats = [
+  const statsCards = [
     {
       title: "Total Tours",
-      value: "12",
-      sub: "+2 this month",
+      value: stats.totalTours,
+      sub: "Your published tours",
       icon: FaMapMarkerAlt,
       iconBg: "#73A7FF",
     },
     {
       title: "Active Bookings",
-      value: "48",
-      sub: "+12 this week",
+      value: stats.activeBookings,
+      sub: "Pending & confirmed",
       icon: FaCalendarAlt,
       iconBg: "#4ADE80",
     },
     {
       title: "Total Revenue",
-      value: "₱125,400",
-      sub: "+15% this month",
+      value: `₱${stats.totalRevenue.toLocaleString()}`,
+      sub: "Confirmed bookings",
       icon: FaMoneyBillWave,
       iconBg: "#F59CF3",
     },
     {
       title: "Customer Reviews",
-      value: "4.8",
-      sub: "246 reviews",
+      value: stats.avgRating,
+      sub: "Average rating",
       icon: FaStar,
       iconBg: "#FCD34D",
     },
   ];
 
-  const bookings = [
-    {
-      title: "Mt. Pinatubo Crater Lake Treek",
-      name: "Clifford Halasan",
-      date: "2024-02-15",
-      price: "₱2,500",
-      status: "confirmed",
-    },
-    {
-      title: "Mt. Pinatubo Crater Lake Treek",
-      name: "Clifford Halasan",
-      date: "2024-02-15",
-      price: "₱2,500",
-      status: "pending",
-    },
-    {
-      title: "Mt. Pinatubo Crater Lake Treek",
-      name: "Clifford Halasan",
-      date: "2024-02-15",
-      price: "₱2,500",
-      status: "confirmed",
-    },
-    {
-      title: "Mt. Pinatubo Crater Lake Treek",
-      name: "Clifford Halasan",
-      date: "2024-02-15",
-      price: "₱2,500",
-      status: "confirmed",
-    },
-  ];
+  const statusBadgeStyle = (status) => {
+    const base = {
+      borderRadius: 999,
+      padding: "6px 12px",
+      fontSize: 12,
+      fontWeight: 600,
+      display: "inline-block",
+    };
 
-const statusBadgeStyle = (status) => {
-  const base = {
-    borderRadius: 999,
-    padding: "6px 12px",
-    fontSize: 12,
-    fontWeight: 600,
-    display: "inline-block",
+    switch (status?.toLowerCase()) {
+      case "confirmed":
+        return {
+          ...base,
+          backgroundColor: "#DCFCE7",
+          color: "#16A34A",
+        };
+
+      case "pending":
+        return {
+          ...base,
+          backgroundColor: "#FEF3C7",
+          color: "#B45309",
+        };
+
+      default:
+        return {
+          ...base,
+          backgroundColor: "#f1a9a9",
+          color: "#f30000",
+        };
+    }
   };
-
-  switch (status?.toLowerCase()) {
-    case "confirmed":
-      return {
-        ...base,
-        backgroundColor: "#DCFCE7",
-        color: "#16A34A",
-      };
-
-    case "pending":
-      return {
-        ...base,
-        backgroundColor: "#FEF3C7",
-        color: "#B45309",
-      };
-
-    default:
-      return {
-        ...base,
-        backgroundColor: "#E5E7EB",
-        color: "#374151",
-      };
-  }
-};
 
   return (
     <Container fluid style={{ fontFamily: "Poppins" }}>
@@ -142,7 +226,7 @@ const statusBadgeStyle = (status) => {
 
       {/* Stats */}
       <Row className="g-3">
-        {stats.map((s, idx) => {
+        {statsCards.map((s, idx) => {
           const Icon = s.icon;
           return (
             <Col key={idx} xs="12" md="6" lg="3">
@@ -185,17 +269,28 @@ const statusBadgeStyle = (status) => {
               background: "transparent",
             }}
           >
+            {recentBookings.length === 0 && (
+              <div style={{ color: muted, padding: "12px 0" }}>
+                No recent bookings yet.
+              </div>
+            )}
+
             <CardBody style={{ padding: 0 }}>
-              {bookings.map((b, i) => (
+              {recentBookings.map((b, i) => (
                 <div
                   key={i}
+                  onClick={() => openViewModal(b)}
                   style={{
                     padding: "14px 0",
-                    borderBottom: i === bookings.length - 1 ? "none" : `1px solid ${border}`,
+                    borderBottom:
+                      i === recentBookings.length - 1
+                        ? "none"
+                        : `1px solid ${border}`,
                     display: "flex",
                     alignItems: "flex-start",
                     justifyContent: "space-between",
                     gap: 14,
+                    cursor: "pointer",
                   }}
                 >
                   {/* Left */}
@@ -214,11 +309,11 @@ const statusBadgeStyle = (status) => {
                       {b.title}
                     </div>
 
-                    <div style={{ color: muted, marginTop: 6 }}>
-                      {b.name}
-                    </div>
+                    <div style={{ color: muted, marginTop: 6 }}>{b.name}</div>
 
-                    <div style={{ color: "#9caf9f", marginTop: 6, fontSize: 12 }}>
+                    <div
+                      style={{ color: "#9caf9f", marginTop: 6, fontSize: 12 }}
+                    >
                       {b.date}
                     </div>
                   </div>
@@ -229,15 +324,52 @@ const statusBadgeStyle = (status) => {
                       {b.price}
                     </div>
 
-                    <span style={{ ...statusBadgeStyle(b.status), marginTop: 10 }}>
-                        {b.status}
-                        </span>
-
+                    <span
+                      style={{ ...statusBadgeStyle(b.status), marginTop: 10 }}
+                    >
+                      {b.status}
+                    </span>
                   </div>
                 </div>
               ))}
             </CardBody>
           </Card>
+          <Modal isOpen={viewOpen} toggle={() => setViewOpen(false)} centered>
+            <ModalHeader toggle={() => setViewOpen(false)}>
+              Booking Details
+            </ModalHeader>
+
+            <ModalBody>
+              {selectedBooking && (
+                <>
+                  <p>
+                    <strong>Tour:</strong> {selectedBooking.title}
+                  </p>
+                  <p>
+                    <strong>Customer:</strong> {selectedBooking.name}
+                  </p>
+                  <p>
+                    <strong>Date:</strong> {selectedBooking.date}
+                  </p>
+                  <p>
+                    <strong>Amount:</strong> {selectedBooking.price}
+                  </p>
+                  <p>
+                    <strong>Status:</strong>{" "}
+                    <span style={statusBadgeStyle(selectedBooking.status)}>
+                      {selectedBooking.status}
+                    </span>
+                  </p>
+                </>
+              )}
+            </ModalBody>
+
+            <ModalFooter>
+              <Button color="secondary" onClick={() => setViewOpen(false)}>
+                Close
+              </Button>
+            </ModalFooter>
+          </Modal>
         </Col>
       </Row>
     </Container>
