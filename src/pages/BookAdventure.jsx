@@ -374,9 +374,11 @@ function BookAdventure() {
 
                 <div
                   className={`p-3 ${
-                    payment === "bank" ? "bg-success text-white" : "border"
+                    payment === "bank-transfer"
+                      ? "bg-success text-white"
+                      : "border"
                   }`}
-                  onClick={() => setPayment("bank")}
+                  onClick={() => setPayment("bank-transfer")}
                 >
                   <FaUniversity /> Bank Transfer
                 </div>
