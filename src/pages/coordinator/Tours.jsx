@@ -16,6 +16,31 @@ import {
 } from "reactstrap";
 import { FaPlus, FaImage, FaTrash, FaEdit } from "react-icons/fa";
 import axios from "axios";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+
+const normalizeToArray = (value) => {
+  if (!value) return [];
+
+  // already an array
+  if (Array.isArray(value)) return value;
+
+  // stringified JSON array
+  if (typeof value === "string") {
+    try {
+      const parsed = JSON.parse(value);
+      if (Array.isArray(parsed)) return parsed;
+    } catch {
+      // fallback: comma or newline separated
+      return value
+        .split(/,|\n/)
+        .map((v) => v.trim())
+        .filter(Boolean);
+    }
+  }
+
+  return [];
+};
 
 export default function CoordinatorTours() {
   const API_BASE =
@@ -53,6 +78,40 @@ export default function CoordinatorTours() {
     privateBookingPrice: "",
     pictures: [],
   });
+
+  const [isEdit, setIsEdit] = useState(false);
+  const [editingTourId, setEditingTourId] = useState(null);
+
+  const handleEdit = (tour) => {
+    setIsEdit(true);
+    setEditingTourId(tour._id || tour.id);
+
+    setForm({
+      title: tour.title || "",
+      category: tour.category || "Mountain Climbing",
+      address: tour.address || "",
+      meetupLocations: normalizeToArray(tour.meetupLocations).join(", "),
+      details: tour.details || "",
+      packageInclusions: normalizeToArray(tour.packageInclusions).join(", "),
+      itinerary: Array.isArray(tour.itinerary) ? tour.itinerary : [[""]],
+      thingsToBring: normalizeToArray(tour.thingsToBring).join("\n"),
+      joinerPrice: tour.joinerPrice || "",
+      joinerMaxSlots: tour.joinerMaxSlots || "",
+      privateBookingPrice: tour.privateBookingPrice || "",
+      pictures: [],
+    });
+
+    const parsedDates = parseAvailableDates(tour.availableDates).map((d) => ({
+      startDate: d.start.toISOString().slice(0, 10),
+      endDate: d.end.toISOString().slice(0, 10),
+    }));
+
+    setDateRanges(
+      parsedDates.length ? parsedDates : [{ startDate: "", endDate: "" }],
+    );
+
+    setOpen(true);
+  };
 
   /* ================= DATE HELPERS ================= */
 
@@ -116,10 +175,14 @@ export default function CoordinatorTours() {
   const toggle = () => setOpen(!open);
 
   const resetForm = () => {
+    setIsEdit(false);
+    setEditingTourId(null);
+
     setForm({
       title: "",
       category: "Mountain Climbing",
       address: "",
+      meetupLocations: "",
       details: "",
       packageInclusions: "",
       itinerary: [[""]],
@@ -129,7 +192,7 @@ export default function CoordinatorTours() {
       privateBookingPrice: "",
       pictures: [],
     });
-    // ✅ RESET PROPERLY
+
     setDateRanges([{ startDate: "", endDate: "" }]);
   };
 
@@ -161,7 +224,7 @@ export default function CoordinatorTours() {
       setTours(res.data || []);
     } catch (err) {
       console.error(err);
-      alert("Failed to load tours");
+      toast.error("Failed to load tours");
     }
   };
 
@@ -174,7 +237,7 @@ export default function CoordinatorTours() {
     e.preventDefault();
 
     if (!token) {
-      alert("Unauthorized. Please login again.");
+      toast.error("Unauthorized. Please login again.");
       return;
     }
 
@@ -191,11 +254,7 @@ export default function CoordinatorTours() {
       .filter((r) => r.startDate && r.endDate)
       .map((r) => [toStartOfDayISO(r.startDate), toEndOfDayISO(r.endDate)]);
 
-    console.log("🚀 availableDates payload:", availableDatesPayload);
-    console.log("itinerary:", form.itinerary);
-
     fd.append("availableDates", JSON.stringify(availableDatesPayload));
-
     fd.append(
       "meetupLocations",
       JSON.stringify(
@@ -205,15 +264,24 @@ export default function CoordinatorTours() {
           .filter(Boolean),
       ),
     );
-
     fd.append(
       "packageInclusions",
-      JSON.stringify(form.packageInclusions.split(",").map((i) => i.trim())),
+      JSON.stringify(
+        form.packageInclusions
+          .split(",")
+          .map((i) => i.trim())
+          .filter(Boolean),
+      ),
     );
     fd.append("itinerary", JSON.stringify(form.itinerary));
     fd.append(
       "thingsToBring",
-      JSON.stringify(form.thingsToBring.split("\n").map((i) => i.trim())),
+      JSON.stringify(
+        form.thingsToBring
+          .split("\n")
+          .map((i) => i.trim())
+          .filter(Boolean),
+      ),
     );
 
     fd.append("joinerPrice", Number(form.joinerPrice));
@@ -222,51 +290,109 @@ export default function CoordinatorTours() {
 
     form.pictures.forEach((file) => fd.append("pictures", file));
 
-    console.log("My Payload", form.address);
-    try {
-      await axios.post(`${API_BASE}tours/create`, fd, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+    const toastId = toast.loading(
+      isEdit ? "Updating tour..." : "Creating tour...",
+    );
 
-      alert("✅ Tour created successfully");
+    try {
+      if (isEdit && editingTourId) {
+        await axios.put(`${API_BASE}tours/update/${editingTourId}`, fd, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        toast.update(toastId, {
+          render: "✏️ Tour updated successfully",
+          type: "success",
+          isLoading: false,
+          autoClose: 2000,
+        });
+      } else {
+        await axios.post(`${API_BASE}tours/create`, fd, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        toast.update(toastId, {
+          render: "🎉 Tour created successfully",
+          type: "success",
+          isLoading: false,
+          autoClose: 2000,
+        });
+      }
+
       toggle();
       resetForm();
       fetchMyTours();
     } catch (err) {
       console.error(err);
-      alert("❌ Failed to create tour");
+
+      toast.update(toastId, {
+        render: "❌ Failed to save tour",
+        type: "error",
+        isLoading: false,
+        autoClose: 3000,
+      });
     } finally {
       setLoading(false);
     }
   };
+
   /* ================= DELETE TOUR ================= */
-  const handleDelete = async (tourId) => {
+  const handleDelete = (tourId) => {
     if (!token) {
-      alert("Unauthorized. Please login again.");
+      toast.error("Unauthorized. Please login again.");
       return;
     }
 
-    const confirmDelete = window.confirm(
-      "Are you sure you want to delete this tour?",
+    toast(
+      ({ closeToast }) => (
+        <div>
+          <p style={{ fontWeight: 600 }}>
+            Are you sure you want to delete this tour?
+          </p>
+
+          <div className="d-flex justify-content-end gap-2 mt-2">
+            <Button size="sm" color="secondary" onClick={closeToast}>
+              Cancel
+            </Button>
+
+            <Button
+              size="sm"
+              color="danger"
+              onClick={async () => {
+                closeToast();
+
+                // 🔥 optimistic UI
+                const previousTours = tours;
+                setTours((prev) => prev.filter((t) => t._id !== tourId));
+
+                try {
+                  await axios.delete(`${API_BASE}tours/${tourId}`, {
+                    headers: { Authorization: `Bearer ${token}` },
+                  });
+
+                  toast.success("🗑️ Tour deleted successfully");
+                } catch (error) {
+                  console.error(error);
+                  setTours(previousTours);
+
+                  toast.error(
+                    error?.response?.data?.message ||
+                      "❌ Failed to delete tour. Restored.",
+                  );
+                }
+              }}
+            >
+              Delete
+            </Button>
+          </div>
+        </div>
+      ),
+      {
+        autoClose: false,
+        closeOnClick: false,
+        draggable: false,
+      },
     );
-
-    if (!confirmDelete) return;
-
-    try {
-      await axios.delete(`${API_BASE}tours/${tourId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      // ✅ remove from UI instantly
-      setTours((prev) => prev.filter((t) => t._id !== tourId));
-
-      alert("✅ Tour deleted successfully");
-    } catch (error) {
-      console.error(error);
-      alert(error?.response?.data?.message || "❌ Failed to delete tour");
-    }
   };
 
   /* ================= UI ================= */
@@ -280,7 +406,10 @@ export default function CoordinatorTours() {
         <Col className="text-end">
           <Button
             style={{ background: green, border: "none" }}
-            onClick={toggle}
+            onClick={() => {
+              resetForm();
+              setOpen(true);
+            }}
           >
             <FaPlus /> Add new Package
           </Button>
@@ -314,9 +443,15 @@ export default function CoordinatorTours() {
                     </div>
 
                     <div className="d-flex gap-2">
-                      <Button size="sm" color="link" className="p-0">
+                      <Button
+                        size="sm"
+                        color="link"
+                        className="p-0"
+                        onClick={() => handleEdit(t)}
+                      >
                         <FaEdit />
                       </Button>
+
                       <Button
                         size="sm"
                         color="link"
@@ -386,7 +521,9 @@ export default function CoordinatorTours() {
 
       {/* CREATE TOUR MODAL */}
       <Modal isOpen={open} toggle={toggle} centered size="lg">
-        <ModalHeader toggle={toggle}>Create Tour</ModalHeader>
+        <ModalHeader toggle={toggle}>
+          {isEdit ? "Update Tour" : "Create Tour"}
+        </ModalHeader>
         <ModalBody>
           <Form onSubmit={handleSave}>
             <FormGroup>
@@ -665,18 +802,22 @@ export default function CoordinatorTours() {
               <Button
                 type="submit"
                 disabled={loading}
-                style={{
-                  background: green,
-                  border: "none",
-                  fontWeight: 700,
-                }}
+                style={{ background: green, border: "none", fontWeight: 700 }}
               >
-                {loading ? "Saving..." : "Create Tour"}
+                {loading ? "Saving..." : isEdit ? "Update Tour" : "Create Tour"}
               </Button>
             </div>
           </Form>
         </ModalBody>
       </Modal>
+      <ToastContainer
+        position="top-right"
+        autoClose={2500}
+        hideProgressBar={false}
+        newestOnTop
+        closeOnClick
+        pauseOnHover
+      />
     </Container>
   );
 }
