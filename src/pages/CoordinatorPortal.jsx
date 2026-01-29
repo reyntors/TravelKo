@@ -70,17 +70,14 @@ export default function CoordinatorPortal() {
     payload.append("phoneNumber", form.phoneNumber);
     payload.append("password", form.password);
 
-    console.log("Submitting payload:");
-    for (let pair of payload.entries()) {
-      console.log(pair[0], pair[1]);
-    }
+   
 
     try {
       const res = await axios.post(`${API_BASE}auth/coordinator`, payload, {
         headers: { "Content-Type": "application/json" },
       });
 
-      console.log(res);
+    
 
       navigate("/login", { replace: true });
     } catch (error) {

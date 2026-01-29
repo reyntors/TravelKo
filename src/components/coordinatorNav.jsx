@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import {
   Navbar,
   Container,
@@ -25,6 +25,18 @@ export default function CoordinatorNav() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(true);
   const [loggingOut, setLoggingOut] = useState(false);
+  const [avatar, setAvatar] = useState(localStorage.getItem("profilePicture"));
+
+  useEffect(() => {
+    const handler = (e) => {
+      setAvatar(e.detail.profileImageUrl);
+    };
+
+    window.addEventListener("profile-updated", handler);
+    return () => window.removeEventListener("profile-updated", handler);
+  }, []);
+
+  const fallback = "https://i.pravatar.cc/100?img=32";
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -252,7 +264,7 @@ export default function CoordinatorNav() {
           >
             <div style={{ position: "relative", width: 44, height: 44 }}>
               <img
-                src="https://i.pravatar.cc/100?img=32"
+                src={avatar || fallback}
                 alt="Coordinator"
                 style={{
                   width: 44,

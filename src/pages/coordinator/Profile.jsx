@@ -13,11 +13,16 @@ import {
   Spinner,
   Alert,
 } from "reactstrap";
+import axios from "axios";
 
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 export default function Profile() {
+  const [newPassword, setNewPassword] = useState("");
+  const [profilePicture, setProfilePicture] = useState(null);
+  const [idPictures, setIdPictures] = useState([]);
+
   const green = "#16A34A";
   const border = "#E5E7EB";
   const muted = "#6B7280";
@@ -59,8 +64,8 @@ export default function Profile() {
     phoneNumber: "",
     address: "",
     bankName: "",
-    accountName: "",
-    accountNumber: "",
+    bankAccountName: "",
+    bankAccountNumber: "",
     gcashNumber: "",
     gender: "",
   });
@@ -89,14 +94,28 @@ export default function Profile() {
           throw new Error(data?.message || "Failed to load profile");
         }
 
+        if (data) {
+          localStorage.setItem("profilePicture", data.profileImageUrl);
+
+          window.dispatchEvent(
+            new CustomEvent("profile-updated", {
+              detail: {
+                profileImageUrl: data.profileImageUrl,
+              },
+            }),
+          );
+        } else {
+          console.log("unable to get the image");
+        }
+
         setProfile({
           fullName: data.fullName || "",
           email: data.email || "",
           phoneNumber: data.phoneNumber || "",
           address: data.address || "",
           bankName: data.bankName || "",
-          accountName: data.accountName || "",
-          accountNumber: data.accountNumber || "",
+          bankAccountName: data.bankAccountName || "",
+          bankAccountNumber: data.bankAccountNumber || "",
           gcashNumber: data.gcashNumber || "",
           gender: data.gender || "",
         });
@@ -131,31 +150,73 @@ export default function Profile() {
   const saveProfile = async () => {
     setSaving(true);
 
+    const toastId = toast.loading("Saving profile...");
+
     try {
-      const res = await fetch(`${API_BASE}auth/coordinator`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(profile),
-      });
+      const fd = new FormData();
 
-      const text = await res.text(); // backend returns plain text
-      console.log("SERVER RESPONSE:", text);
+      // ================= BASIC INFO =================
+      fd.append("fullName", profile.fullName);
+      fd.append("email", profile.email);
+      fd.append("phoneNumber", profile.phoneNumber);
+      fd.append("address", profile.address);
+      fd.append("gender", profile.gender);
 
-      if (!res.ok) {
-        // backend sends error as text too
-        throw new Error(text || "Failed to save profile");
+      // ================= BANKING (IMPORTANT FIX) =================
+      fd.append("bankName", profile.bankName);
+      fd.append("bankAccountName", profile.bankAccountName); // ✅ correct key
+      fd.append("bankAccountNumber", profile.bankAccountNumber); // ✅ correct key
+      fd.append("gcashNumber", profile.gcashNumber);
+
+      // ================= OPTIONAL FIELDS =================
+      if (newPassword.trim()) {
+        fd.append("newPassword", newPassword);
       }
 
-      // ✅ SUCCESS
+      if (profilePicture) {
+        fd.append("profilePicture", profilePicture);
+      }
+
+      if (idPictures.length > 0) {
+        idPictures.forEach((file) => {
+          fd.append("idPictures", file);
+        });
+      }
+
+      // ================= API CALL =================
+      const res = await axios.put(`${API_BASE}auth/coordinator`, fd, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      // ================= SUCCESS =================
       setOriginalProfile(profile);
       setIsEditing(false);
-      toast.success("Profile updated successfully!");
+      setNewPassword("");
+      setProfilePicture(null);
+      setIdPictures([]);
+
+      toast.update(toastId, {
+        render: "✅ Profile updated successfully",
+        type: "success",
+        isLoading: false,
+        autoClose: 2500,
+      });
     } catch (err) {
       console.error(err);
-      toast.error(err.message || "Failed to save changes");
+
+      const message =
+        err.response?.data?.message ||
+        err.response?.data ||
+        "❌ Failed to update profile";
+
+      toast.update(toastId, {
+        render: Array.isArray(message) ? message.join(", ") : message,
+        type: "error",
+        isLoading: false,
+        autoClose: 3500,
+      });
     } finally {
       setSaving(false);
     }
@@ -315,8 +376,8 @@ export default function Profile() {
                 <FormGroup>
                   <Label>Account Name</Label>
                   <Input
-                    value={profile.accountName}
-                    onChange={onChange("accountName")}
+                    value={profile.bankAccountName}
+                    onChange={onChange("bankAccountName")}
                     disabled={!isEditing}
                     style={!isEditing ? disabledInputStyle : enabledInputStyle}
                   />
@@ -327,8 +388,8 @@ export default function Profile() {
                 <FormGroup>
                   <Label>Bank Account Number</Label>
                   <Input
-                    value={profile.accountNumber}
-                    onChange={onChange("accountNumber")}
+                    value={profile.bankAccountNumber}
+                    onChange={onChange("bankAccountNumber")}
                     disabled={!isEditing}
                     style={!isEditing ? disabledInputStyle : enabledInputStyle}
                   />
@@ -362,8 +423,19 @@ export default function Profile() {
                 <Label>Change Profile Picture</Label>
                 <Input
                   type="file"
+                  accept="image/*"
                   disabled={!isEditing}
                   style={!isEditing ? disabledInputStyle : enabledInputStyle}
+                  onChange={(e) => setProfilePicture(e.target.files[0])}
+                />
+                <Label>Valid ID</Label>
+                <Input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  disabled={!isEditing}
+                  style={!isEditing ? disabledInputStyle : enabledInputStyle}
+                  onChange={(e) => setIdPictures(Array.from(e.target.files))}
                 />
               </FormGroup>
             </Col>
@@ -376,6 +448,8 @@ export default function Profile() {
                   disabled={!isEditing}
                   style={!isEditing ? disabledInputStyle : enabledInputStyle}
                   placeholder="New password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
                 />
               </FormGroup>
             </Col>
