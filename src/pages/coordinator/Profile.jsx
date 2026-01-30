@@ -13,7 +13,7 @@ import {
   Spinner,
   Alert,
 } from "reactstrap";
-import axios from "axios";
+import api from "@/services/api";
 
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -184,7 +184,7 @@ export default function Profile() {
       }
 
       // ================= API CALL =================
-      const res = await axios.put(`${API_BASE}auth/coordinator`, fd, {
+      const res = await api.put(`${API_BASE}auth/coordinator`, fd, {
         headers: {
           Authorization: `Bearer ${token}`,
         },

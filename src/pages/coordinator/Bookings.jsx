@@ -14,7 +14,7 @@ import {
   DropdownItem,
 } from "reactstrap";
 import { FaSearch, FaEye, FaCheck, FaTimes } from "react-icons/fa";
-import axios from "axios";
+import api from "@/services/api";
 
 export default function Bookings() {
   const green = "#16A34A";
@@ -36,7 +36,7 @@ export default function Bookings() {
 
         const token = localStorage.getItem("auth_token");
 
-        const res = await axios.get(
+        const res = await api.get(
           `${import.meta.env.VITE_API_BASE_URL}booking`,
           {
             headers: {
@@ -45,7 +45,6 @@ export default function Bookings() {
           },
         );
 
-        // ✅ Axios response data
         const data = res.data;
 
         const coordinator = JSON.parse(
@@ -136,7 +135,7 @@ export default function Bookings() {
     try {
       const token = localStorage.getItem("auth_token");
 
-      await axios.patch(
+      await api.patch(
         `${import.meta.env.VITE_API_BASE_URL}booking/${id}`,
         { status }, // ✅ ONLY update status
         {

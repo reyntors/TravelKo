@@ -6,7 +6,8 @@ import {
   FaMoneyBillWave,
   FaStar,
 } from "react-icons/fa";
-import axios from "axios";
+import api from "@/services/api";
+
 import { useEffect, useState } from "react";
 import { Modal, ModalHeader, ModalBody, ModalFooter } from "reactstrap";
 
@@ -35,8 +36,8 @@ export default function Dashboard() {
 
         // Fetch tours + bookings in parallel
         const [toursRes, bookingsRes] = await Promise.all([
-          axios.get(`${import.meta.env.VITE_API_BASE_URL}tours`, { headers }),
-          axios.get(`${import.meta.env.VITE_API_BASE_URL}booking`, { headers }),
+          api.get(`${import.meta.env.VITE_API_BASE_URL}tours`, { headers }),
+          api.get(`${import.meta.env.VITE_API_BASE_URL}booking`, { headers }),
         ]);
 
         const tours = toursRes.data || [];
@@ -85,7 +86,7 @@ export default function Dashboard() {
           localStorage.getItem("auth_user") || "{}",
         );
 
-        const res = await axios.get(
+        const res = await api.get(
           `${import.meta.env.VITE_API_BASE_URL}booking`,
           {
             headers: {

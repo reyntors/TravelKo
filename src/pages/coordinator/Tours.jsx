@@ -15,7 +15,8 @@ import {
   Input,
 } from "reactstrap";
 import { FaPlus, FaImage, FaTrash, FaEdit } from "react-icons/fa";
-import axios from "axios";
+import api from "@/services/api";
+
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
@@ -218,7 +219,7 @@ export default function CoordinatorTours() {
   /* ================= FETCH TOURS ================= */
   const fetchMyTours = async () => {
     try {
-      const res = await axios.get(`${API_BASE}tours/my-tours`, {
+      const res = await api.get(`${API_BASE}tours/my-tours`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setTours(res.data || []);
@@ -296,7 +297,7 @@ export default function CoordinatorTours() {
 
     try {
       if (isEdit && editingTourId) {
-        await axios.put(`${API_BASE}tours/update/${editingTourId}`, fd, {
+        await api.put(`${API_BASE}tours/update/${editingTourId}`, fd, {
           headers: { Authorization: `Bearer ${token}` },
         });
 
@@ -307,7 +308,7 @@ export default function CoordinatorTours() {
           autoClose: 2000,
         });
       } else {
-        await axios.post(`${API_BASE}tours/create`, fd, {
+        await api.post(`${API_BASE}tours/create`, fd, {
           headers: { Authorization: `Bearer ${token}` },
         });
 
@@ -366,7 +367,7 @@ export default function CoordinatorTours() {
                 setTours((prev) => prev.filter((t) => t._id !== tourId));
 
                 try {
-                  await axios.delete(`${API_BASE}tours/${tourId}`, {
+                  await api.delete(`${API_BASE}tours/${tourId}`, {
                     headers: { Authorization: `Bearer ${token}` },
                   });
 
