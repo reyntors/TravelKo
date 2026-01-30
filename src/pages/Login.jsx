@@ -15,11 +15,10 @@ import {
 } from "reactstrap";
 import { useNavigate, NavLink } from "react-router-dom";
 import { Modal, ModalBody, Spinner } from "reactstrap";
+import { FaUserTie, FaUserShield } from "react-icons/fa";
 
 const API_BASE =
   import.meta.env.VITE_API_BASE_URL || "https://api.travelko.site/";
-
-console.log(API_BASE);
 
 const LoginPage = () => {
   const navigate = useNavigate();
@@ -31,6 +30,7 @@ const LoginPage = () => {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [role, setRole] = useState("coordinator");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -39,7 +39,12 @@ const LoginPage = () => {
     setLoggingIn(true);
 
     try {
-      const res = await fetch(`${API_BASE}auth/coordinator/login`, {
+      const loginEndpoint =
+        role === "admin"
+          ? `${API_BASE}auth/admin/login`
+          : `${API_BASE}auth/coordinator/login`;
+
+      const res = await fetch(loginEndpoint, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -85,9 +90,14 @@ const LoginPage = () => {
       if (rememberMe) localStorage.setItem("rememberMe", "true");
       else localStorage.removeItem("rememberMe");
 
-      // small delay for UX smoothness
+      localStorage.setItem("auth_role", role);
+
       setTimeout(() => {
-        navigate("/coordinator/dashboard", { replace: true });
+        if (role === "admin") {
+          navigate("/admin/dashboard", { replace: true });
+        } else {
+          navigate("/coordinator/dashboard", { replace: true });
+        }
       }, 600);
     } catch (err) {
       setError(err.message || "Something went wrong.");
@@ -126,22 +136,60 @@ const LoginPage = () => {
             }}
           >
             <CardBody className="p-5">
+              {/* ROLE SWITCH */}
+              <div className="d-flex justify-content-center gap-2 mb-4">
+                <Button
+                  outline={role !== "coordinator"}
+                  color="success"
+                  onClick={() => setRole("coordinator")}
+                  style={{
+                    borderRadius: 20,
+                    padding: "6px 18px",
+                    fontWeight: 600,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                  }}
+                >
+                  <FaUserTie size={16} />
+                  Coordinator
+                </Button>
+
+                <Button
+                  outline={role !== "admin"}
+                  color="dark"
+                  onClick={() => setRole("admin")}
+                  style={{
+                    borderRadius: 20,
+                    padding: "6px 18px",
+                    fontWeight: 600,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                  }}
+                >
+                  <FaUserShield size={16} />
+                  Admin
+                </Button>
+              </div>
+
               {/* HEADER */}
               <div className="text-center mb-4">
-                <h3 className="mb-2">Sign in to your account</h3>
-                <p className="text-muted mb-0">
-                  Or{" "}
-                  <NavLink
-                    to="/coordinator/register"
-                    style={{
-                      textDecoration: "none",
-                      color: "#16A34A",
-                      fontWeight: 600,
-                    }}
-                  >
-                    Become a coordinator
-                  </NavLink>
-                </p>
+                <h3 className="mb-2">
+                  Sign in as {role === "admin" ? "Admin" : "Coordinator"}
+                </h3>
+
+                {role === "coordinator" && (
+                  <p className="text-muted mb-0">
+                    Or{" "}
+                    <NavLink
+                      to="/coordinator/register"
+                      style={{ color: "#16A34A", fontWeight: 600 }}
+                    >
+                      Become a coordinator
+                    </NavLink>
+                  </p>
+                )}
               </div>
 
               {/* ERROR */}

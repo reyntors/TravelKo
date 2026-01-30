@@ -22,6 +22,14 @@ import CoordinatorBookings from "./pages/coordinator/Bookings";
 import CoordinatorProfile from "./pages/coordinator/Profile";
 import CoordinatorPortal from "./pages/CoordinatorPortal";
 
+// Admin pages
+import AdminLayout from "./pages/admin/AdminLayout";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import ManageCoordinators from "./pages/admin/ManageCoordinators";
+import CoordinatorApplications from "./pages/admin/CoordinatorApplications";
+import CoordinatorDetails from "./pages/admin/CoordinatorDetails";
+import AdminBookings from "./pages/admin/AdminBookings";
+
 function App() {
   return (
     <>
@@ -171,6 +179,17 @@ function App() {
               </CoordinatorLayout>
             }
           />
+        </Route>
+
+        <Route path="/admin" element={<AdminLayout />}>
+          <Route path="dashboard" element={<AdminDashboard />} />
+          <Route path="coordinators" element={<ManageCoordinators />} />
+          <Route path="applications" element={<CoordinatorApplications />} />
+          <Route
+            path="/admin/coordinator/:id"
+            element={<CoordinatorDetails />}
+          />
+          <Route path="/admin/bookings" element={<AdminBookings />} />
         </Route>
 
         {/* ================= FALLBACK ================= */}
