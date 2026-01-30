@@ -186,7 +186,7 @@ const LoginPage = () => {
                       to="/coordinator/register"
                       style={{ color: "#16A34A", fontWeight: 600 }}
                     >
-                      Become a coordinator
+                      Sign Up
                     </NavLink>
                   </p>
                 )}
