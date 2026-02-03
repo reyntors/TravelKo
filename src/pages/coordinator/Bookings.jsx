@@ -28,6 +28,8 @@ export default function Bookings() {
 
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [typeFilter, setTypeFilter] = useState("all"); // all | private | joiner
+  const [openTypeFilter, setOpenTypeFilter] = useState(false);
 
   useEffect(() => {
     const fetchBookings = async () => {
@@ -125,10 +127,17 @@ export default function Bookings() {
       b.customer.toLowerCase().includes(q) ||
       b.id.toLowerCase().includes(q);
 
-    const matchesFilter =
+    const matchesStatus =
       filter === "all" ? true : b.status.toLowerCase() === filter;
 
-    return matchesQuery && matchesFilter;
+    const matchesType =
+      typeFilter === "all"
+        ? true
+        : typeFilter === "private"
+          ? b.type.toLowerCase().includes("private")
+          : b.type.toLowerCase().includes("join");
+
+    return matchesQuery && matchesStatus && matchesType;
   });
 
   const updateStatus = async (id, status) => {
@@ -192,21 +201,63 @@ export default function Bookings() {
       </Row>
 
       {/* Controls */}
+
       <Card
         style={{ ...headerCardStyle, overflow: "visible" }}
         className="mb-3"
       >
         <CardBody>
           <Row className="g-2 align-items-center">
+            {/* BOOKING TYPE FILTER */}
             <Col
               xs="12"
-              md="5"
+              md="6"
+              className="d-flex justify-content-md-start"
+              style={{ position: "relative", zIndex: 1200 }}
+            >
+              <Dropdown
+                isOpen={openTypeFilter}
+                toggle={() => setOpenTypeFilter((v) => !v)}
+              >
+                <DropdownToggle
+                  caret
+                  style={{
+                    borderRadius: 12,
+                    border: `1px solid ${border}`,
+                    background: "#fff",
+                    color: text,
+                    fontWeight: 700,
+                    padding: "10px 12px",
+                    minWidth: 200,
+                    textAlign: "left",
+                  }}
+                >
+                  Booking Type:{" "}
+                  <span style={{ textTransform: "capitalize" }}>
+                    {typeFilter}
+                  </span>
+                </DropdownToggle>
+
+                <DropdownMenu end>
+                  <DropdownItem onClick={() => setTypeFilter("all")}>
+                    All types
+                  </DropdownItem>
+                  <DropdownItem onClick={() => setTypeFilter("private")}>
+                    Private Tour
+                  </DropdownItem>
+                  <DropdownItem onClick={() => setTypeFilter("joiner")}>
+                    Joiner / Group
+                  </DropdownItem>
+                </DropdownMenu>
+              </Dropdown>
+            </Col>
+
+            {/* STATUS FILTER */}
+            <Col
+              xs="12"
+              md="6"
               className="d-flex justify-content-md-end"
-              style={{
-                position: "relative",
-                zIndex: 1200,
-                overflow: "visible",
-              }}
+              style={{ position: "relative", zIndex: 1200 }}
             >
               <Dropdown
                 isOpen={openFilter}

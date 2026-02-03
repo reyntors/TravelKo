@@ -47,6 +47,9 @@ function BookAdventure() {
   /* ================= DATA FROM PREVIOUS PAGE ================= */
 
   const tourId = state?.tourId ?? null;
+  const bookingMode = state?.bookingMode || "normal";
+  const isPrivateBooking = bookingMode === "private";
+
   const parseAvailableDates = (availableDates) => {
     if (!Array.isArray(availableDates)) return [];
 
@@ -79,7 +82,14 @@ function BookAdventure() {
   const [tour, setTour] = useState(null);
   const [loadingTour, setLoadingTour] = useState(true);
 
-  const [bookingType, setBookingType] = useState("solo");
+  const [bookingType, setBookingType] = useState("group");
+
+  useEffect(() => {
+    if (isPrivateBooking) {
+      setBookingType("solo");
+    }
+  }, [isPrivateBooking]);
+
   const [people, setPeople] = useState(2);
   const [payment, setPayment] = useState("");
   const [loading, setLoading] = useState(false);
@@ -225,7 +235,11 @@ function BookAdventure() {
           }}
         />
         <Container style={{ position: "relative" }}>
-          <h1 className="fw-bold">Book Your Adventure</h1>
+          <h1 className="fw-bold">
+            {isPrivateBooking
+              ? "Private Booking Adventure"
+              : "Book Your Adventure"}
+          </h1>
           <p>{tour.title}</p>
         </Container>
       </div>
@@ -312,6 +326,7 @@ function BookAdventure() {
               <CardBody>
                 <h5 className="fw-bold mb-3">Booking Type</h5>
 
+                {/* PRIVATE */}
                 <div
                   className={`p-3 rounded mb-3 ${
                     bookingType === "solo" ? "bg-success text-white" : "border"
@@ -321,14 +336,19 @@ function BookAdventure() {
                   <FaUsers /> Private / Solo (₱{tour.privateBookingPrice})
                 </div>
 
-                <div
-                  className={`p-3 rounded mb-3 ${
-                    bookingType === "group" ? "bg-success text-white" : "border"
-                  }`}
-                  onClick={() => setBookingType("group")}
-                >
-                  <FaUserFriends /> Join a Group (₱{tour.joinerPrice})
-                </div>
+                {/* JOINER — hide when private booking */}
+                {!isPrivateBooking && (
+                  <div
+                    className={`p-3 rounded mb-3 ${
+                      bookingType === "group"
+                        ? "bg-success text-white"
+                        : "border"
+                    }`}
+                    onClick={() => setBookingType("group")}
+                  >
+                    <FaUserFriends /> Join a Group (₱{tour.joinerPrice})
+                  </div>
+                )}
 
                 {bookingType === "group" && (
                   <FormGroup>

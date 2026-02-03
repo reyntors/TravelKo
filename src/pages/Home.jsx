@@ -345,7 +345,11 @@ function Home() {
 
                     {/* PRIVATE BOOKING LINK */}
                     <NavLink
-                      to={`/tours/${tour.id}`}
+                      to="/book"
+                      state={{
+                        tourId: tour.id,
+                        bookingMode: "private",
+                      }}
                       style={{ textDecoration: "none" }}
                     >
                       <p className="text-success fw-semibold mb-3">
