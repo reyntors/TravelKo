@@ -30,6 +30,12 @@ export default function Bookings() {
   const [loading, setLoading] = useState(true);
   const [typeFilter, setTypeFilter] = useState("all"); // all | private | joiner
   const [openTypeFilter, setOpenTypeFilter] = useState(false);
+  const [activeTab, setActiveTab] = useState("approval");
+  const [openTour, setOpenTour] = useState(null);
+
+  useEffect(() => {
+    setOpenTour(null);
+  }, [activeTab]);
 
   useEffect(() => {
     const fetchBookings = async () => {
@@ -57,13 +63,16 @@ export default function Bookings() {
           ? data.filter((b) => b?.tour?.coordinatorId === coordinator?.id)
           : [];
 
-        // 🔄 Normalize data for UI
+        //  Normalize data for UI
         const normalized = myBookings.map((b) => ({
           id: b.id,
+          tourId: b.tour?.id,
           tourTitle: b.tour?.title || "—",
-          customer: b.booker?.fullName ?? "—", // ✅ FIXED
+          customer: b.booker?.fullName ?? "—",
+          email: b.booker?.email ?? "—",
+          phone: b.booker?.phoneNumber ?? "—",
           tourDate: b.bookingDateSelected || "—",
-          type: b.bookingType === "joiner" ? "Join a group" : "Private tour",
+          type: b.bookingType,
           amount: Number(b.amountPaid || 0),
           status: b.status || "pending",
         }));
@@ -79,6 +88,36 @@ export default function Bookings() {
 
     fetchBookings();
   }, []);
+
+  const privateApproval = bookings.filter(
+    (b) => b.type === "private" && b.status === "pending",
+  );
+
+  const privateApproved = bookings.filter(
+    (b) => b.type === "private" && b.status === "confirmed",
+  );
+
+  const joinerBookings = bookings.filter((b) => b.type === "joiner");
+
+  const joinerByTour = useMemo(() => {
+    return joinerBookings.reduce((acc, b) => {
+      if (!acc[b.tourId]) {
+        acc[b.tourId] = {
+          tourTitle: b.tourTitle,
+          bookings: [],
+        };
+      }
+      acc[b.tourId].bookings.push(b);
+      return acc;
+    }, {});
+  }, [joinerBookings]);
+
+  const dataToRender =
+    activeTab === "approval"
+      ? privateApproval
+      : activeTab === "private"
+        ? privateApproved
+        : [];
 
   const formatPeso = (n) =>
     new Intl.NumberFormat("en-PH", {
@@ -200,183 +239,119 @@ export default function Bookings() {
         </Col>
       </Row>
 
-      {/* Controls */}
+      {/* Tabs */}
+      <div className="d-flex gap-2 mb-4">
+        <Button
+          color={activeTab === "approval" ? "success" : "secondary"}
+          onClick={() => setActiveTab("approval")}
+        >
+          Private Approval ({privateApproval.length})
+        </Button>
 
-      <Card
-        style={{ ...headerCardStyle, overflow: "visible" }}
-        className="mb-3"
-      >
-        <CardBody>
-          <Row className="g-2 align-items-center">
-            {/* BOOKING TYPE FILTER */}
-            <Col
-              xs="12"
-              md="6"
-              className="d-flex justify-content-md-start"
-              style={{ position: "relative", zIndex: 1200 }}
-            >
-              <Dropdown
-                isOpen={openTypeFilter}
-                toggle={() => setOpenTypeFilter((v) => !v)}
-              >
-                <DropdownToggle
-                  caret
-                  style={{
-                    borderRadius: 12,
-                    border: `1px solid ${border}`,
-                    background: "#fff",
-                    color: text,
-                    fontWeight: 700,
-                    padding: "10px 12px",
-                    minWidth: 200,
-                    textAlign: "left",
-                  }}
-                >
-                  Booking Type:{" "}
-                  <span style={{ textTransform: "capitalize" }}>
-                    {typeFilter}
-                  </span>
-                </DropdownToggle>
+        <Button
+          color={activeTab === "private" ? "success" : "secondary"}
+          onClick={() => setActiveTab("private")}
+        >
+          Private Bookings ({privateApproved.length})
+        </Button>
 
-                <DropdownMenu end>
-                  <DropdownItem onClick={() => setTypeFilter("all")}>
-                    All types
-                  </DropdownItem>
-                  <DropdownItem onClick={() => setTypeFilter("private")}>
-                    Private Tour
-                  </DropdownItem>
-                  <DropdownItem onClick={() => setTypeFilter("joiner")}>
-                    Joiner / Group
-                  </DropdownItem>
-                </DropdownMenu>
-              </Dropdown>
-            </Col>
+        <Button
+          color={activeTab === "joiner" ? "success" : "secondary"}
+          onClick={() => setActiveTab("joiner")}
+        >
+          Joiner / Group Bookings ({joinerBookings.length})
+        </Button>
+      </div>
 
-            {/* STATUS FILTER */}
-            <Col
-              xs="12"
-              md="6"
-              className="d-flex justify-content-md-end"
-              style={{ position: "relative", zIndex: 1200 }}
-            >
-              <Dropdown
-                isOpen={openFilter}
-                toggle={() => setOpenFilter((v) => !v)}
-              >
-                <DropdownToggle
-                  caret
-                  style={{
-                    borderRadius: 12,
-                    border: `1px solid ${border}`,
-                    background: "#fff",
-                    color: text,
-                    fontWeight: 700,
-                    padding: "10px 12px",
-                    minWidth: 190,
-                    textAlign: "left",
-                  }}
-                >
-                  Status:{" "}
-                  <span style={{ textTransform: "capitalize" }}>{filter}</span>
-                </DropdownToggle>
+      {/* ================= PRIVATE APPROVAL + PRIVATE LIST ================= */}
+      {activeTab !== "joiner" && (
+        <>
+          {/* ================= DESKTOP TABLE ================= */}
+          <div className="d-none d-md-block">
+            <Card style={headerCardStyle}>
+              <CardBody style={{ padding: 0 }}>
+                <Table hover responsive className="mb-0">
+                  <thead>
+                    <tr>
+                      <th>Booking</th>
+                      <th>Customer</th>
+                      <th>Tour Date</th>
+                      <th className="text-end">Amount</th>
+                      <th>Status</th>
+                      <th className="text-end">Actions</th>
+                    </tr>
+                  </thead>
 
-                <DropdownMenu end style={{ zIndex: 1300 }}>
-                  <DropdownItem onClick={() => setFilter("all")}>
-                    All bookings
-                  </DropdownItem>
-                  <DropdownItem onClick={() => setFilter("confirmed")}>
-                    Confirmed
-                  </DropdownItem>
-                  <DropdownItem onClick={() => setFilter("pending")}>
-                    Pending
-                  </DropdownItem>
-                  <DropdownItem onClick={() => setFilter("cancelled")}>
-                    Cancelled
-                  </DropdownItem>
-                </DropdownMenu>
-              </Dropdown>
-            </Col>
-          </Row>
-        </CardBody>
-      </Card>
+                  <tbody>
+                    {dataToRender.map((b) => (
+                      <tr key={b.id}>
+                        <td>
+                          <strong>{b.id}</strong>
+                          <div className="text-muted">{b.tourTitle}</div>
+                        </td>
+                        <td>{b.customer}</td>
+                        <td>{b.tourDate}</td>
+                        <td className="text-end">{formatPeso(b.amount)}</td>
+                        <td>
+                          <span style={statusPillStyle(b.status)}>
+                            {b.status}
+                          </span>
+                        </td>
+                        <td className="text-end">
+                          <Button
+                            size="sm"
+                            outline
+                            onClick={() => handleView(b)}
+                          >
+                            <FaEye />
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
 
-      {/* Desktop table (hidden on mobile) */}
-      <div className="d-none d-md-block mt-5">
-        <Card style={headerCardStyle}>
-          <CardBody style={{ padding: 0 }}>
-            <Table responsive hover className="mb-0" style={{ margin: 0 }}>
-              <thead>
-                <tr style={{ background: "#F9FAFB" }}>
-                  <th style={{ padding: 14 }}>Booking Details</th>
-                  <th style={{ padding: 14 }}>Customer</th>
-                  <th style={{ padding: 14 }}>Tour Date</th>
-                  <th style={{ padding: 14 }}>Type</th>
-                  <th style={{ padding: 14, textAlign: "right" }}>Amount</th>
-                  <th style={{ padding: 14 }}>Status</th>
-                  <th style={{ padding: 14, textAlign: "right" }}>Actions</th>
-                </tr>
-              </thead>
+                    {dataToRender.length === 0 && (
+                      <tr>
+                        <td colSpan="6" className="text-center text-muted p-4">
+                          No bookings found
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </Table>
+              </CardBody>
+            </Card>
+          </div>
 
-              <tbody>
-                {filtered.map((b) => (
-                  <tr key={b.id}>
-                    <td style={{ padding: 14 }}>
-                      <div style={{ fontWeight: 900, color: text }}>{b.id}</div>
-                      <div style={{ color: muted }}>{b.tourTitle}</div>
-                    </td>
+          {/* ================= MOBILE CARDS ================= */}
+          <div className="d-block d-md-none">
+            {dataToRender.map((b) => (
+              <Card key={b.id} className="mb-3 shadow-sm">
+                <CardBody>
+                  <div className="d-flex justify-content-between mb-2">
+                    <div>
+                      <strong>#{b.id}</strong>
+                      <div className="text-muted small">{b.tourTitle}</div>
+                    </div>
+                    <span style={statusPillStyle(b.status)}>{b.status}</span>
+                  </div>
 
-                    <td style={{ padding: 14, color: text, fontWeight: 700 }}>
-                      {b.customer}
-                    </td>
+                  <div className="fw-semibold">{b.customer}</div>
+                  <div className="text-muted small">{b.tourDate}</div>
 
-                    <td style={{ padding: 14, color: muted }}>{b.tourDate}</td>
+                  <div className="my-2 fw-bold">{formatPeso(b.amount)}</div>
 
-                    <td style={{ padding: 14 }}>
-                      <span style={typePillStyle(b.type)}>{b.type}</span>
-                    </td>
+                  {/* ACTIONS */}
+                  <div className="d-flex gap-2">
+                    <Button size="sm" outline onClick={() => handleView(b)}>
+                      <FaEye />
+                    </Button>
 
-                    <td style={{ padding: 14, textAlign: "right" }}>
-                      <span style={{ fontWeight: 900, color: text }}>
-                        {formatPeso(b.amount)}
-                      </span>
-                    </td>
-
-                    <td style={{ padding: 14 }}>
-                      <span style={statusPillStyle(b.status)}>{b.status}</span>
-                    </td>
-
-                    <td style={{ padding: 14, textAlign: "right" }}>
-                      <div
-                        style={{
-                          display: "inline-flex",
-                          gap: 8,
-                          alignItems: "center",
-                        }}
-                      >
-                        <Button
-                          size="sm"
-                          outline
-                          onClick={() => handleView(b)}
-                          style={{ borderRadius: 10 }}
-                          title="View"
-                        >
-                          <FaEye />
-                        </Button>
-
+                    {activeTab === "approval" && (
+                      <>
                         <Button
                           size="sm"
                           color="success"
                           onClick={() => updateStatus(b.id, "confirmed")}
-                          style={{
-                            borderRadius: 10,
-                            background: green,
-                            border: "none",
-                            display:
-                              b.status === "confirmed" ? "none" : "inline-flex",
-                            alignItems: "center",
-                            gap: 6,
-                          }}
-                          title="Confirm"
                         >
                           <FaCheck />
                         </Button>
@@ -385,137 +360,83 @@ export default function Bookings() {
                           size="sm"
                           color="danger"
                           onClick={() => updateStatus(b.id, "cancelled")}
-                          style={{
-                            borderRadius: 10,
-                            display:
-                              b.status === "cancelled" ? "none" : "inline-flex",
-                            alignItems: "center",
-                            gap: 6,
-                          }}
-                          title="Cancel"
                         >
                           <FaTimes />
                         </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-
-                {filtered.length === 0 && (
-                  <tr>
-                    <td colSpan="7" style={{ padding: 18, color: muted }}>
-                      No bookings found.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </Table>
-          </CardBody>
-        </Card>
-      </div>
-
-      {/* Mobile list (shown only on mobile) */}
-      <div className="d-md-none" style={{ marginTop: "5rem" }}>
-        <Row className="g-3">
-          {filtered.map((b) => (
-            <Col xs="12" key={b.id}>
-              <Card style={headerCardStyle}>
-                <CardBody>
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      gap: 10,
-                    }}
-                  >
-                    <div style={{ minWidth: 0 }}>
-                      <div style={{ fontWeight: 900, color: text }}>
-                        {b.tourTitle}
-                      </div>
-                      <div style={{ color: muted, marginTop: 4 }}>
-                        {b.customer}
-                      </div>
-                      <div
-                        style={{ color: "#9CA3AF", marginTop: 6, fontSize: 12 }}
-                      >
-                        {b.id} • {b.tourDate}
-                      </div>
-                    </div>
-                    <div style={{ textAlign: "right" }}>
-                      <div style={{ fontWeight: 900, color: text }}>
-                        {formatPeso(b.amount)}
-                      </div>
-                      <div style={{ marginTop: 8 }}>
-                        <span style={statusPillStyle(b.status)}>
-                          {b.status}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div
-                    style={{
-                      marginTop: 12,
-                      display: "flex",
-                      gap: 10,
-                      flexWrap: "wrap",
-                    }}
-                  >
-                    <span style={typePillStyle(b.type)}>{b.type}</span>
-                  </div>
-
-                  <div style={{ marginTop: 14, display: "flex", gap: 8 }}>
-                    <Button
-                      outline
-                      size="sm"
-                      onClick={() => handleView(b)}
-                      style={{ borderRadius: 10 }}
-                    >
-                      <FaEye style={{ marginRight: 6 }} />
-                      View
-                    </Button>
-
-                    {b.status !== "confirmed" && (
-                      <Button
-                        size="sm"
-                        onClick={() => updateStatus(b.id, "confirmed")}
-                        style={{
-                          borderRadius: 10,
-                          background: green,
-                          border: "none",
-                        }}
-                      >
-                        <FaCheck style={{ marginRight: 6 }} />
-                        Confirm
-                      </Button>
+                      </>
                     )}
 
-                    {b.status !== "cancelled" && (
+                    {activeTab === "private" && b.status !== "cancelled" && (
                       <Button
                         size="sm"
                         color="danger"
                         onClick={() => updateStatus(b.id, "cancelled")}
-                        style={{ borderRadius: 10 }}
                       >
-                        <FaTimes style={{ marginRight: 6 }} />
-                        Cancel
+                        <FaTimes />
                       </Button>
                     )}
                   </div>
                 </CardBody>
               </Card>
-            </Col>
+            ))}
+
+            {dataToRender.length === 0 && (
+              <Card className="text-center text-muted p-4">
+                No bookings found
+              </Card>
+            )}
+          </div>
+        </>
+      )}
+
+      {/* ================= JOINER / GROUP VIEW ================= */}
+      {activeTab === "joiner" && (
+        <>
+          {Object.values(joinerByTour).map((tour) => (
+            <Card key={tour.tourTitle} className="mb-3">
+              <CardBody>
+                <h5 className="fw-bold">{tour.tourTitle}</h5>
+
+                <Button size="sm" outline onClick={() => setOpenTour(tour)}>
+                  View Clients ({tour.bookings.length})
+                </Button>
+              </CardBody>
+            </Card>
           ))}
 
-          {filtered.length === 0 && (
-            <Col xs="12">
-              <Card style={headerCardStyle}>
-                <CardBody style={{ color: muted }}>No bookings found.</CardBody>
-              </Card>
-            </Col>
+          {openTour && (
+            <>
+              {/* DESKTOP TABLE */}
+              <div className="d-none d-md-block">
+                {/* your existing joiner table */}
+              </div>
+
+              {/* MOBILE CARDS */}
+              <div className="d-md-none">
+                {openTour.bookings.map((b) => (
+                  <Card key={b.id} className="mb-3">
+                    <CardBody>
+                      <div className="fw-semibold">{b.customer}</div>
+                      <div className="text-muted small">{b.email}</div>
+                      <div className="text-muted small">{b.phone}</div>
+
+                      <div className="my-2 fw-bold">{formatPeso(b.amount)}</div>
+
+                      <Button
+                        size="sm"
+                        color="danger"
+                        onClick={() => updateStatus(b.id, "cancelled")}
+                      >
+                        <FaTimes /> Cancel
+                      </Button>
+                    </CardBody>
+                  </Card>
+                ))}
+              </div>
+            </>
           )}
-        </Row>
-      </div>
+        </>
+      )}
     </Container>
   );
 }

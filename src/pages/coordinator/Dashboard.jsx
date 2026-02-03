@@ -21,6 +21,25 @@ export default function Dashboard() {
     totalRevenue: 0,
     avgRating: 0, // placeholder for now
   });
+  const [profilePicture, setProfilePicture] = useState(
+    localStorage.getItem("profilePicture"),
+  );
+
+  useEffect(() => {
+    const handleProfileUpdated = (event) => {
+      const newImage = event.detail?.profileImageUrl;
+
+      if (newImage) {
+        setProfilePicture(newImage);
+      }
+    };
+
+    window.addEventListener("profile-updated", handleProfileUpdated);
+
+    return () => {
+      window.removeEventListener("profile-updated", handleProfileUpdated);
+    };
+  }, []);
 
   useEffect(() => {
     const fetchDashboardStats = async () => {
