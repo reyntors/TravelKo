@@ -22,6 +22,8 @@ import {
   FaBars,
 } from "react-icons/fa";
 
+import defaultProfile from "../assets/defaultUser.png";
+
 function AppNavbar() {
   const [isOpen, setIsOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
@@ -34,6 +36,8 @@ function AppNavbar() {
     setIsLoggedIn(!!localStorage.getItem("auth_token"));
     setProfilePicture(localStorage.getItem("profilePicture"));
   }, []);
+
+  const fallback = defaultProfile;
 
   const handleLogout = () => {
     localStorage.clear();
@@ -73,11 +77,10 @@ function AppNavbar() {
           </NavItem>
 
           {isLoggedIn ? (
-            /* ✅ DROPDOWN DIRECTLY UNDER <Nav> */
             <Dropdown nav inNavbar isOpen={profileOpen} toggle={toggleProfile}>
               <DropdownToggle nav caret className="p-0">
                 <img
-                  src={profilePicture || "/default-avatar.png"}
+                  src={profilePicture || fallback}
                   alt="Profile"
                   style={{
                     width: 36,

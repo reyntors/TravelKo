@@ -185,7 +185,7 @@ export default function Bookings() {
 
       await api.patch(
         `${import.meta.env.VITE_API_BASE_URL}booking/${id}`,
-        { status }, // ✅ ONLY update status
+        { status },
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -193,7 +193,6 @@ export default function Bookings() {
         },
       );
 
-      // ✅ Update UI immediately after success
       setBookings((prev) =>
         prev.map((b) => (b.id === id ? { ...b, status } : b)),
       );
@@ -298,13 +297,55 @@ export default function Bookings() {
                           </span>
                         </td>
                         <td className="text-end">
-                          <Button
-                            size="sm"
-                            outline
-                            onClick={() => handleView(b)}
-                          >
-                            <FaEye />
-                          </Button>
+                          <div className="d-inline-flex gap-2">
+                            {/* VIEW */}
+                            <Button
+                              size="sm"
+                              outline
+                              onClick={() => handleView(b)}
+                            >
+                              <FaEye />
+                            </Button>
+
+                            {/* APPROVAL TAB → APPROVE + CANCEL */}
+                            {activeTab === "approval" && (
+                              <>
+                                <Button
+                                  size="sm"
+                                  color="success"
+                                  onClick={() =>
+                                    updateStatus(b.id, "confirmed")
+                                  }
+                                >
+                                  <FaCheck />
+                                </Button>
+
+                                <Button
+                                  size="sm"
+                                  color="danger"
+                                  onClick={() =>
+                                    updateStatus(b.id, "cancelled")
+                                  }
+                                >
+                                  <FaTimes />
+                                </Button>
+                              </>
+                            )}
+
+                            {/* PRIVATE TAB → CANCEL ONLY */}
+                            {activeTab === "private" &&
+                              b.status !== "cancelled" && (
+                                <Button
+                                  size="sm"
+                                  color="danger"
+                                  onClick={() =>
+                                    updateStatus(b.id, "cancelled")
+                                  }
+                                >
+                                  <FaTimes />
+                                </Button>
+                              )}
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -408,7 +449,58 @@ export default function Bookings() {
             <>
               {/* DESKTOP TABLE */}
               <div className="d-none d-md-block">
-                {/* your existing joiner table */}
+                <div className="d-none d-md-block">
+                  <Card className="mt-4" style={headerCardStyle}>
+                    <CardBody style={{ padding: 0 }}>
+                      <Table hover responsive className="mb-0">
+                        <thead>
+                          <tr>
+                            <th>Client</th>
+                            <th>Email</th>
+                            <th>Phone</th>
+                            <th className="text-end">Amount</th>
+                            <th className="text-end">Action</th>
+                          </tr>
+                        </thead>
+
+                        <tbody>
+                          {openTour.bookings.map((b) => (
+                            <tr key={b.id}>
+                              <td>{b.customer}</td>
+                              <td>{b.email}</td>
+                              <td>{b.phone}</td>
+                              <td className="text-end">
+                                {formatPeso(b.amount)}
+                              </td>
+                              <td className="text-end">
+                                <Button
+                                  size="sm"
+                                  color="danger"
+                                  onClick={() =>
+                                    updateStatus(b.id, "cancelled")
+                                  }
+                                >
+                                  <FaTimes />
+                                </Button>
+                              </td>
+                            </tr>
+                          ))}
+
+                          {openTour.bookings.length === 0 && (
+                            <tr>
+                              <td
+                                colSpan="5"
+                                className="text-center text-muted p-4"
+                              >
+                                No clients found
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </Table>
+                    </CardBody>
+                  </Card>
+                </div>
               </div>
 
               {/* MOBILE CARDS */}

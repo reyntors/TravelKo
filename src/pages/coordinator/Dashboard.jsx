@@ -82,7 +82,7 @@ export default function Dashboard() {
           totalTours: myTours.length,
           activeBookings: activeBookings.length,
           totalRevenue,
-          avgRating: 4.8, // 🔜 replace when reviews API exists
+          avgRating: 4.8,
         });
       } catch (err) {
         console.error("Failed to load dashboard stats", err);
@@ -142,6 +142,47 @@ export default function Dashboard() {
     };
 
     fetchRecentBookings();
+  }, []);
+
+  useEffect(() => {
+    const fetchProfileImage = async () => {
+      try {
+        const token = localStorage.getItem("auth_token");
+        if (!token) return;
+
+        const res = await api.get(
+          `${import.meta.env.VITE_API_BASE_URL}auth/coordinator`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          },
+        );
+
+        const data = res.data;
+
+        if (data?.profileImageUrl) {
+          // save to localStorage
+          localStorage.setItem("profilePicture", data.profileImageUrl);
+
+          // update dashboard state
+          setProfilePicture(data.profileImageUrl);
+
+          // notify navbar / other components
+          window.dispatchEvent(
+            new CustomEvent("profile-updated", {
+              detail: {
+                profileImageUrl: data.profileImageUrl,
+              },
+            }),
+          );
+        }
+      } catch (err) {
+        console.error("Failed to fetch profile image", err);
+      }
+    };
+
+    fetchProfileImage();
   }, []);
 
   const green = "#16A34A";

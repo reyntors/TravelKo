@@ -50,6 +50,8 @@ export default function CoordinatorNav() {
     setTimeout(() => {
       localStorage.removeItem("auth_token");
       localStorage.removeItem("rememberMe");
+      localStorage.removeItem("profilePicture");
+      localStorage.removeItem("auth_role");
       navigate("/");
     }, 1200);
   };
