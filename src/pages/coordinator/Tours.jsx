@@ -362,9 +362,13 @@ export default function CoordinatorTours() {
               onClick={async () => {
                 closeToast();
 
-                // 🔥 optimistic UI
-                const previousTours = tours;
-                setTours((prev) => prev.filter((t) => t._id !== tourId));
+                // ✅ SAFE SNAPSHOT
+                const previousTours = [...tours];
+
+                // ✅ REAL-TIME UI UPDATE
+                setTours((prev) =>
+                  prev.filter((t) => (t._id || t.id) !== tourId),
+                );
 
                 try {
                   await api.delete(`${API_BASE}tours/${tourId}`, {
@@ -374,6 +378,8 @@ export default function CoordinatorTours() {
                   toast.success("🗑️ Tour deleted successfully");
                 } catch (error) {
                   console.error(error);
+
+                  // 🔁 ROLLBACK IF FAILED
                   setTours(previousTours);
 
                   toast.error(
@@ -620,7 +626,7 @@ export default function CoordinatorTours() {
                   </Col>
                 </Row>
               ))}
-
+              {/* 
               <Button
                 type="button"
                 color="success"
@@ -629,7 +635,7 @@ export default function CoordinatorTours() {
                 onClick={addDateRange}
               >
                 + Add Date
-              </Button>
+              </Button> */}
             </FormGroup>
 
             <FormGroup>
