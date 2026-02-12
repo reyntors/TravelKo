@@ -14,11 +14,21 @@ import {
   Label,
   Input,
 } from "reactstrap";
-import { FaPlus, FaImage, FaTrash, FaEdit } from "react-icons/fa";
+import {
+  FaPlus,
+  FaImage,
+  FaTrash,
+  FaEdit,
+  FaCalendarAlt,
+} from "react-icons/fa";
 import api from "@/services/api";
+import { forwardRef } from "react";
 
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 
 const normalizeToArray = (value) => {
   if (!value) return [];
@@ -43,6 +53,25 @@ const normalizeToArray = (value) => {
   return [];
 };
 
+const CalendarButton = forwardRef(({ value, onClick }, ref) => (
+  <Button
+    innerRef={ref}
+    onClick={onClick}
+    color="success"
+    outline
+    style={{
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      width: 45,
+      height: 45,
+      borderRadius: "50%",
+    }}
+  >
+    <FaCalendarAlt />
+  </Button>
+));
+
 export default function CoordinatorTours() {
   const API_BASE =
     import.meta.env.VITE_API_BASE_URL || "https://api.travelko.site/";
@@ -61,9 +90,8 @@ export default function CoordinatorTours() {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const [dateRanges, setDateRanges] = useState([
-    { startDate: "", endDate: "" },
-  ]);
+  const [dateRange, setDateRange] = useState([null, null]);
+  const [startDate, endDate] = dateRange;
 
   const [form, setForm] = useState({
     title: "",
@@ -118,31 +146,23 @@ export default function CoordinatorTours() {
 
   // ✅ FIX: parse backend availableDates (string OR array)
   const parseAvailableDates = (availableDates) => {
-    if (!Array.isArray(availableDates)) return [];
+    if (!Array.isArray(availableDates) || availableDates.length === 0)
+      return [];
 
-    return availableDates
-      .map((item) => {
-        let range = item;
+    // convert string dates to Date objects
+    const dates = availableDates
+      .map((d) => new Date(d))
+      .filter((d) => !isNaN(d.getTime()));
 
-        // if backend sends stringified JSON
-        if (typeof item === "string") {
-          try {
-            range = JSON.parse(item);
-          } catch {
-            return null;
-          }
-        }
+    if (dates.length === 0) return [];
 
-        if (!Array.isArray(range) || range.length < 2) return null;
-
-        const start = new Date(range[0]);
-        const end = new Date(range[range.length - 1]);
-
-        if (isNaN(start.getTime()) || isNaN(end.getTime())) return null;
-
-        return { start, end };
-      })
-      .filter(Boolean);
+    // first and last date = range
+    return [
+      {
+        start: dates[0],
+        end: dates[dates.length - 1],
+      },
+    ];
   };
 
   const formatDate = (date) =>
@@ -151,26 +171,6 @@ export default function CoordinatorTours() {
       day: "numeric",
       year: "numeric",
     });
-
-  const toStartOfDayISO = (date) =>
-    new Date(`${date}T00:00:00.000Z`).toISOString();
-
-  const toEndOfDayISO = (date) =>
-    new Date(`${date}T23:59:59.999Z`).toISOString();
-
-  const addDateRange = () => {
-    setDateRanges((prev) => [...prev, { startDate: "", endDate: "" }]);
-  };
-
-  const removeDateRange = (index) => {
-    setDateRanges((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  const updateDateRange = (index, key, value) => {
-    setDateRanges((prev) =>
-      prev.map((r, i) => (i === index ? { ...r, [key]: value } : r)),
-    );
-  };
 
   /* ================= HELPERS ================= */
   const toggle = () => setOpen(!open);
@@ -193,8 +193,6 @@ export default function CoordinatorTours() {
       privateBookingPrice: "",
       pictures: [],
     });
-
-    setDateRanges([{ startDate: "", endDate: "" }]);
   };
 
   const onChange = (key) => (e) =>
@@ -251,11 +249,31 @@ export default function CoordinatorTours() {
     fd.append("address", form.address);
     fd.append("details", form.details);
 
-    const availableDatesPayload = dateRanges
-      .filter((r) => r.startDate && r.endDate)
-      .map((r) => [toStartOfDayISO(r.startDate), toEndOfDayISO(r.endDate)]);
+    let availableDatesPayload = [];
 
+    if (startDate && endDate) {
+      const current = new Date(startDate);
+
+      while (current <= endDate) {
+        const utcDate = new Date(
+          Date.UTC(
+            current.getFullYear(),
+            current.getMonth(),
+            current.getDate(),
+          ),
+        );
+
+        availableDatesPayload.push(utcDate.toISOString());
+
+        current.setDate(current.getDate() + 1);
+      }
+    }
+
+    // IMPORTANT: Append ONLY ONCE
     fd.append("availableDates", JSON.stringify(availableDatesPayload));
+
+    console.log("DATES:", availableDatesPayload);
+
     fd.append(
       "meetupLocations",
       JSON.stringify(
@@ -265,16 +283,10 @@ export default function CoordinatorTours() {
           .filter(Boolean),
       ),
     );
-    fd.append(
-      "packageInclusions",
-      JSON.stringify(
-        form.packageInclusions
-          .split(",")
-          .map((i) => i.trim())
-          .filter(Boolean),
-      ),
-    );
-    fd.append("itinerary", JSON.stringify(form.itinerary));
+    fd.append("packageInclusions", form.packageInclusions);
+
+    fd.append("itinerary", JSON.stringify(form.itinerary.map((day) => day[0])));
+
     fd.append(
       "thingsToBring",
       JSON.stringify(
@@ -285,11 +297,15 @@ export default function CoordinatorTours() {
       ),
     );
 
-    fd.append("joinerPrice", Number(form.joinerPrice));
-    fd.append("joinerMaxSlots", Number(form.joinerMaxSlots));
-    fd.append("privateBookingPrice", Number(form.privateBookingPrice));
+    fd.append("joinerPrice", form.joinerPrice);
+    fd.append("joinerMaxSlots", form.joinerMaxSlots);
+    fd.append("privateBookingPrice", form.privateBookingPrice);
 
     form.pictures.forEach((file) => fd.append("pictures", file));
+
+    for (let pair of fd.entries()) {
+      console.log(pair[0], ":", pair[1]);
+    }
 
     const toastId = toast.loading(
       isEdit ? "Updating tour..." : "Creating tour...",
@@ -575,67 +591,25 @@ export default function CoordinatorTours() {
             <FormGroup>
               <Label>Available Dates *</Label>
 
-              {/* Column labels */}
-              <Row className="mb-1">
-                <Col md="5">
-                  <Label className="small fw-semibold">Start Date</Label>
-                </Col>
-                <Col md="5">
-                  <Label className="small fw-semibold">End Date</Label>
-                </Col>
-              </Row>
+              <DatePicker
+                selectsRange
+                startDate={startDate}
+                endDate={endDate}
+                onChange={(update) => setDateRange(update)}
+                customInput={<CalendarButton />}
+                minDate={new Date()}
+                monthsShown={2}
+                shouldCloseOnSelect={true}
+                dateFormat="MMM d, yyyy"
+              />
 
-              {dateRanges.map((range, index) => (
-                <Row key={index} className="align-items-end mb-2">
-                  {/* START DATE */}
-                  <Col md="5">
-                    <Input
-                      type="date"
-                      value={range.startDate}
-                      onChange={(e) =>
-                        updateDateRange(index, "startDate", e.target.value)
-                      }
-                      required
-                    />
-                  </Col>
-
-                  {/* END DATE */}
-                  <Col md="5">
-                    <Input
-                      type="date"
-                      min={range.startDate}
-                      value={range.endDate}
-                      onChange={(e) =>
-                        updateDateRange(index, "endDate", e.target.value)
-                      }
-                      required
-                    />
-                  </Col>
-
-                  {/* REMOVE BUTTON */}
-                  <Col md="2">
-                    {dateRanges.length > 1 && (
-                      <Button
-                        color="danger"
-                        outline
-                        onClick={() => removeDateRange(index)}
-                      >
-                        ✕
-                      </Button>
-                    )}
-                  </Col>
-                </Row>
-              ))}
-              {/* 
-              <Button
-                type="button"
-                color="success"
-                outline
-                size="sm"
-                onClick={addDateRange}
-              >
-                + Add Date
-              </Button> */}
+              {/* Show selected range text */}
+              {startDate && endDate && (
+                <div className="mt-2 small text-muted">
+                  {startDate.toLocaleDateString()} –{" "}
+                  {endDate.toLocaleDateString()}
+                </div>
+              )}
             </FormGroup>
 
             <FormGroup>
