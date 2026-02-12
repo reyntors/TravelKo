@@ -25,27 +25,19 @@ import tour4 from "../assets/tour4.jpg";
 const normalize = (str = "") => String(str).trim().toLowerCase();
 
 const parseAvailableDates = (availableDates) => {
-  if (!availableDates || !availableDates.length) return null;
+  if (!Array.isArray(availableDates) || availableDates.length === 0)
+    return null;
 
-  let raw = availableDates[0];
+  const dates = availableDates
+    .map((d) => new Date(d))
+    .filter((d) => !isNaN(d.getTime()));
 
-  // backend sends stringified JSON
-  if (typeof raw === "string") {
-    try {
-      raw = JSON.parse(raw);
-    } catch {
-      return null;
-    }
-  }
+  if (dates.length === 0) return null;
 
-  if (!Array.isArray(raw) || raw.length < 2) return null;
-
-  const start = new Date(raw[0]);
-  const end = new Date(raw[raw.length - 1]);
-
-  if (isNaN(start) || isNaN(end)) return null;
-
-  return { start, end };
+  return {
+    start: dates[0],
+    end: dates[dates.length - 1],
+  };
 };
 
 const formatDate = (d) =>
