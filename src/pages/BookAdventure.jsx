@@ -18,13 +18,19 @@ import {
   FaMoneyBillWave,
   FaUniversity,
   FaCheckCircle,
+  FaCalendarAlt,
 } from "react-icons/fa";
 
 import { Modal, ModalBody } from "reactstrap";
 
 import { QRCodeCanvas } from "qrcode.react";
 
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
+
 /* ================= HELPERS ================= */
+
+import { forwardRef } from "react";
 
 const formatDate = (date) => {
   if (!date) return "";
@@ -34,6 +40,25 @@ const formatDate = (date) => {
     year: "numeric",
   });
 };
+
+const CalendarButton = forwardRef(({ value, onClick }, ref) => (
+  <Button
+    innerRef={ref}
+    onClick={onClick}
+    color="success"
+    outline
+    style={{
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      width: 45,
+      height: 45,
+      borderRadius: "50%",
+    }}
+  >
+    <FaCalendarAlt />
+  </Button>
+));
 
 /* ================= COMPONENT ================= */
 
@@ -53,28 +78,10 @@ function BookAdventure() {
   const parseAvailableDates = (availableDates) => {
     if (!Array.isArray(availableDates)) return [];
 
-    return availableDates
-      .map((item) => {
-        let range = item;
-
-        if (typeof item === "string") {
-          try {
-            range = JSON.parse(item);
-          } catch {
-            return null;
-          }
-        }
-
-        if (!Array.isArray(range) || range.length < 2) return null;
-
-        const start = new Date(range[0]);
-        const end = new Date(range[range.length - 1]);
-
-        if (isNaN(start.getTime()) || isNaN(end.getTime())) return null;
-
-        return { start, end };
-      })
-      .filter(Boolean);
+    return availableDates.map((d) => ({
+      raw: d, // exact backend string
+      display: new Date(d), // for UI only
+    }));
   };
 
   /* ================= STATE ================= */
@@ -98,8 +105,15 @@ function BookAdventure() {
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [bookingRef, setBookingRef] = useState("");
+  const [dateRange, setDateRange] = useState([null, null]);
+  const [startDate, endDate] = dateRange;
 
-  const selectedDate = dateRanges[selectedDateIndex] || null;
+  const selectedDate =
+    bookingType === "solo"
+      ? startDate && endDate
+        ? { start: startDate, end: endDate }
+        : null
+      : dateRanges[selectedDateIndex] || null;
 
   const [form, setForm] = useState({
     fullName: "",
@@ -132,8 +146,13 @@ function BookAdventure() {
 
         setTour(matchedTour);
 
-        const parsed = parseAvailableDates(matchedTour.availableDates);
-        setDateRanges(parsed);
+        setDateRanges(
+          matchedTour.availableDates.map((dateString) => ({
+            raw: dateString, // exact backend value
+            display: new Date(dateString), // for UI only
+          })),
+        );
+
         setSelectedDateIndex(0);
       } catch (err) {
         console.error("Failed to fetch tour", err);
@@ -181,11 +200,14 @@ function BookAdventure() {
     const payload = {
       bookingType: bookingType === "group" ? "joiner" : "private",
       bookingIndividuals: bookingType === "group" ? people : 1,
-      bookingDateSelected: `${formatDate(
-        selectedDate.start,
-      )} – ${formatDate(selectedDate.end)}`,
+
+      bookingDateSelected:
+        bookingType === "group"
+          ? dateRanges.map((d) => d.raw)
+          : [selectedDate.start.toISOString(), selectedDate.end.toISOString()],
+
       paymentMethod: payment,
-      amountPaid: String(totalAmount),
+      amount: String(totalAmount),
       specialRequests: form.specialRequests,
       fullName: form.fullName,
       email: form.email,
@@ -283,44 +305,6 @@ function BookAdventure() {
               </CardBody>
             </Card>
 
-            {/*SELECT A DATE*/}
-            <Card className="mb-4 shadow-sm">
-              <CardBody>
-                <h5 className="fw-bold mb-3">Available Dates</h5>
-
-                {dateRanges.length === 0 ? (
-                  <p className="text-muted">No available dates</p>
-                ) : (
-                  <>
-                    <Label className="fw-semibold mb-2">
-                      Select your preferred date
-                    </Label>
-
-                    <Input
-                      type="select"
-                      value={selectedDateIndex}
-                      onChange={(e) =>
-                        setSelectedDateIndex(Number(e.target.value))
-                      }
-                    >
-                      {dateRanges.map((range, index) => (
-                        <option key={index} value={index}>
-                          {formatDate(range.start)} – {formatDate(range.end)}
-                        </option>
-                      ))}
-                    </Input>
-
-                    <div className="mt-3 text-success fw-semibold">
-                      Selected:
-                      <br />
-                      {formatDate(selectedDate.start)} –{" "}
-                      {formatDate(selectedDate.end)}
-                    </div>
-                  </>
-                )}
-              </CardBody>
-            </Card>
-
             {/* BOOKING TYPE */}
             <Card className="mb-4 shadow-sm">
               <CardBody>
@@ -333,7 +317,7 @@ function BookAdventure() {
                   }`}
                   onClick={() => setBookingType("solo")}
                 >
-                  <FaUsers /> Private / Solo (₱{tour.privateBookingPrice})
+                  <FaUsers /> Private / Solo
                 </div>
 
                 {/* JOINER — hide when private booking */}
@@ -350,22 +334,27 @@ function BookAdventure() {
                   </div>
                 )}
 
-                {bookingType === "group" && (
-                  <FormGroup>
-                    <Label>Number of Individuals</Label>
-                    <Input
-                      type="select"
-                      value={people}
-                      onChange={(e) => setPeople(Number(e.target.value))}
-                    >
-                      {[2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((n) => (
-                        <option key={n} value={n}>
-                          {n}
-                        </option>
-                      ))}
-                    </Input>
-                  </FormGroup>
-                )}
+                <FormGroup>
+                  <Label>Number of Individuals</Label>
+
+                  <Input
+                    type="select"
+                    value={people}
+                    onChange={(e) => setPeople(Number(e.target.value))}
+                  >
+                    {(bookingType === "group"
+                      ? Array.from(
+                          { length: tour.joinerMaxSlots || 1 },
+                          (_, i) => i + 1,
+                        )
+                      : Array.from({ length: 20 }, (_, i) => i + 1)
+                    ).map((n) => (
+                      <option key={n} value={n}>
+                        {n}
+                      </option>
+                    ))}
+                  </Input>
+                </FormGroup>
 
                 <FormGroup>
                   <Label>Special Requests</Label>
@@ -375,6 +364,63 @@ function BookAdventure() {
                     onChange={onChange("specialRequests")}
                   />
                 </FormGroup>
+              </CardBody>
+            </Card>
+
+            {/* SELECT A DATE */}
+            <Card className="mb-4 shadow-sm">
+              <CardBody>
+                <h5 className="fw-bold mb-3">
+                  {bookingType === "solo"
+                    ? "Select Your Preferred Date"
+                    : "Available Dates"}
+                </h5>
+
+                {/* PRIVATE BOOKING → CUSTOM DATE PICKER */}
+                {bookingType === "solo" ? (
+                  <>
+                    <Label className="fw-semibold mb-2">
+                      Choose your preferred date
+                    </Label>
+                    <DatePicker
+                      selectsRange
+                      startDate={startDate}
+                      endDate={endDate}
+                      onChange={(update) => setDateRange(update)}
+                      customInput={<CalendarButton />}
+                      minDate={new Date()}
+                      monthsShown={2}
+                      shouldCloseOnSelect={true}
+                      dateFormat="MMM d, yyyy"
+                      popperPlacement="bottom-start"
+                      portalId="root-portal"
+                    />
+
+                    {/* Show selected range text */}
+                    {startDate && endDate && (
+                      <div className="mt-3 text-success fw-semibold">
+                        {startDate.toLocaleDateString()} –{" "}
+                        {endDate.toLocaleDateString()}
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  /* JOINER BOOKING → SELECT EXISTING RANGE */
+                  <>
+                    {dateRanges.length === 0 ? (
+                      <p className="text-muted">No available dates</p>
+                    ) : (
+                      <>
+                        <div className="mt-3 text-success fw-semibold">
+                          {dateRanges.length > 0 &&
+                            `${formatDate(dateRanges[0].display)} – ${formatDate(
+                              dateRanges[dateRanges.length - 1].display,
+                            )}`}
+                        </div>
+                      </>
+                    )}
+                  </>
+                )}
               </CardBody>
             </Card>
 

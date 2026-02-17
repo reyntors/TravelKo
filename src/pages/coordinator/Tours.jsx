@@ -89,6 +89,8 @@ export default function CoordinatorTours() {
   const [tours, setTours] = useState([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [privateRange, setPrivateRange] = useState([null, null]);
+  const [privateStart, privateEnd] = privateRange;
 
   const [dateRange, setDateRange] = useState([null, null]);
   const [startDate, endDate] = dateRange;
@@ -144,7 +146,6 @@ export default function CoordinatorTours() {
 
   /* ================= DATE HELPERS ================= */
 
-  // ✅ FIX: parse backend availableDates (string OR array)
   const parseAvailableDates = (availableDates) => {
     if (!Array.isArray(availableDates) || availableDates.length === 0)
       return [];

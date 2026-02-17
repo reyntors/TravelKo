@@ -22,16 +22,70 @@ export default function Bookings() {
   const muted = "#6B7280";
   const text = "#111827";
 
-  const [query, setQuery] = useState("");
-  const [filter, setFilter] = useState("all");
-  const [openFilter, setOpenFilter] = useState(false);
-
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [typeFilter, setTypeFilter] = useState("all"); // all | private | joiner
   const [openTypeFilter, setOpenTypeFilter] = useState(false);
   const [activeTab, setActiveTab] = useState("approval");
   const [openTour, setOpenTour] = useState(null);
+  const [joinerCounts, setJoinerCounts] = useState({});
+  const [joinerDetails, setJoinerDetails] = useState({});
+
+  const fetchJoinerDetails = async (tourId) => {
+    try {
+      const token = localStorage.getItem("auth_token");
+
+      const res = await api.get(`/booking/joiners/${tourId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      setJoinerDetails((prev) => ({
+        ...prev,
+        [tourId]: res.data || [],
+      }));
+    } catch (err) {
+      console.error("Failed to fetch joiner details", err);
+    }
+  };
+
+  const fetchJoinerCount = async (tourId) => {
+    try {
+      const token = localStorage.getItem("auth_token");
+
+      const res = await api.get(`/booking/joiners/${tourId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      const count = Array.isArray(res.data) ? res.data.length : 0;
+
+      setJoinerCounts((prev) => ({
+        ...prev,
+        [tourId]: count,
+      }));
+    } catch (err) {
+      console.error("Failed to fetch joiner count", err);
+    }
+  };
+
+  const dataToRender = useMemo(() => {
+    if (activeTab === "approval") {
+      return bookings.filter(
+        (b) => b.type === "private" && b.status === "request",
+      );
+    }
+
+    if (activeTab === "private") {
+      return bookings.filter(
+        (b) => b.type === "private" && b.status === "approved",
+      );
+    }
+
+    if (activeTab === "joiner") {
+      return bookings.filter((b) => b.type === "joiner");
+    }
+
+    return bookings;
+  }, [bookings, activeTab]);
 
   useEffect(() => {
     setOpenTour(null);
@@ -41,41 +95,60 @@ export default function Bookings() {
     const fetchBookings = async () => {
       try {
         setLoading(true);
-
         const token = localStorage.getItem("auth_token");
 
-        const res = await api.get(
-          `${import.meta.env.VITE_API_BASE_URL}booking`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
+        let endpoint = "";
+
+        if (activeTab === "joiner") {
+          endpoint = "booking/tours/joiners";
+        } else {
+          endpoint = "booking/tours/private";
+        }
+
+        const res = await api.get(`/${endpoint}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
           },
-        );
+        });
 
-        const data = res.data;
+        const data = Array.isArray(res.data) ? res.data : [];
 
-        const coordinator = JSON.parse(
-          localStorage.getItem("auth_user") || "{}",
-        );
+        let normalized = [];
 
-        const myBookings = Array.isArray(data)
-          ? data.filter((b) => b?.tour?.coordinatorId === coordinator?.id)
-          : [];
-
-        //  Normalize data for UI
-        const normalized = myBookings.map((b) => ({
-          id: b.id,
-          tourId: b.tour?.id,
-          tourTitle: b.tour?.title || "—",
-          customer: b.booker?.fullName ?? "—",
-          email: b.booker?.email ?? "—",
-          phone: b.booker?.phoneNumber ?? "—",
-          tourDate: b.bookingDateSelected || "—",
-          type: b.bookingType,
-          amount: Number(b.amountPaid || 0),
-          status: b.status || "pending",
-        }));
+        if (activeTab === "joiner") {
+          // ✅ JOINER STRUCTURE (tour-based)
+          normalized = data.map((tour) => ({
+            mode: "joiner",
+            tourId: tour.id,
+            tourTitle: tour.title || "—",
+            category: tour.category || "—",
+            joinerPrice: tour.joinerPrice || 0,
+            joinerBookedSlots: tour.joinerBookedSlots || 0,
+            joinerMaxSlots: tour.joinerMaxSlots || 0,
+          }));
+        } else {
+          // ✅ PRIVATE + APPROVAL STRUCTURE (booking-based)
+          normalized = data.map((b) => ({
+            mode: "private",
+            id: b.id,
+            tourId: b.tour?.id,
+            tourTitle: b.tour?.title || "—",
+            customer: b.booker?.fullName ?? "—",
+            email: b.booker?.email ?? "—",
+            phone: b.booker?.phoneNumber ?? "—",
+            tourDate: Array.isArray(b.bookingDateSelected)
+              ? `${new Date(b.bookingDateSelected[0]).toLocaleDateString()} - ${
+                  b.bookingDateSelected[1]
+                    ? new Date(b.bookingDateSelected[1]).toLocaleDateString()
+                    : ""
+                }`
+              : "—",
+            type: b.bookingType,
+            amount: Number(b.amountPaid || 0),
+            status: b.status || "request",
+            displayStatus: b.status === "approved" ? "ongoing" : b.status,
+          }));
+        }
 
         setBookings(normalized);
       } catch (err) {
@@ -87,37 +160,7 @@ export default function Bookings() {
     };
 
     fetchBookings();
-  }, []);
-
-  const privateApproval = bookings.filter(
-    (b) => b.type === "private" && b.status === "pending",
-  );
-
-  const privateApproved = bookings.filter(
-    (b) => b.type === "private" && b.status === "confirmed",
-  );
-
-  const joinerBookings = bookings.filter((b) => b.type === "joiner");
-
-  const joinerByTour = useMemo(() => {
-    return joinerBookings.reduce((acc, b) => {
-      if (!acc[b.tourId]) {
-        acc[b.tourId] = {
-          tourTitle: b.tourTitle,
-          bookings: [],
-        };
-      }
-      acc[b.tourId].bookings.push(b);
-      return acc;
-    }, {});
-  }, [joinerBookings]);
-
-  const dataToRender =
-    activeTab === "approval"
-      ? privateApproval
-      : activeTab === "private"
-        ? privateApproved
-        : [];
+  }, [activeTab]);
 
   const formatPeso = (n) =>
     new Intl.NumberFormat("en-PH", {
@@ -147,9 +190,9 @@ export default function Bookings() {
 
   const statusPillStyle = (status) => {
     switch (status?.toLowerCase()) {
-      case "confirmed":
+      case "approved":
         return pill("#DCFCE7", green);
-      case "pending":
+      case "request":
         return pill("#FEF3C7", "#B45309");
       case "cancelled":
         return pill("#FEE2E2", "#B91C1C");
@@ -158,47 +201,55 @@ export default function Bookings() {
     }
   };
 
-  const filtered = bookings.filter((b) => {
-    const q = query.trim().toLowerCase();
-    const matchesQuery =
-      !q ||
-      b.tourTitle.toLowerCase().includes(q) ||
-      b.customer.toLowerCase().includes(q) ||
-      b.id.toLowerCase().includes(q);
+  const rejectPrivate = async (id) => {
+    try {
+      const token = localStorage.getItem("auth_token");
 
-    const matchesStatus =
-      filter === "all" ? true : b.status.toLowerCase() === filter;
+      const remarks = prompt("Enter rejection remarks:");
+      if (!remarks) return;
+      if (remarks.trim().length < 10) {
+        alert("Remarks must be at least 10 characters long.");
+        return;
+      }
 
-    const matchesType =
-      typeFilter === "all"
-        ? true
-        : typeFilter === "private"
-          ? b.type.toLowerCase().includes("private")
-          : b.type.toLowerCase().includes("join");
+      await api.put(
+        `/booking/private/reject/${id}`,
+        {
+          remarks: remarks,
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
 
-    return matchesQuery && matchesStatus && matchesType;
-  });
+      // update state immediately
+      setBookings((prev) =>
+        prev.map((b) => (b.id === id ? { ...b, status: "cancelled" } : b)),
+      );
+    } catch (err) {
+      console.error("FULL ERROR:", err.response?.data);
+    }
+  };
 
-  const updateStatus = async (id, status) => {
+  const cancelJoinerBookings = async (tourId) => {
     try {
       const token = localStorage.getItem("auth_token");
 
       await api.patch(
-        `${import.meta.env.VITE_API_BASE_URL}booking/${id}`,
-        { status },
+        `${import.meta.env.VITE_API_BASE_URL}booking/cancel/${tourId}/joiners`,
+        {},
         {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { Authorization: `Bearer ${token}` },
         },
       );
 
       setBookings((prev) =>
-        prev.map((b) => (b.id === id ? { ...b, status } : b)),
+        prev.map((b) =>
+          b.tourId === tourId ? { ...b, status: "cancelled" } : b,
+        ),
       );
     } catch (err) {
       console.error(err);
-      alert(err.response?.data?.message || "Failed to update booking status");
     }
   };
 
@@ -224,6 +275,32 @@ export default function Bookings() {
     );
   }
 
+  const approvePrivate = async (id, price, remarks = "") => {
+    try {
+      const token = localStorage.getItem("auth_token");
+
+      await api.put(
+        `/booking/private/approve/${id}`,
+        {
+          price: Number(price),
+          remarks: remarks,
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
+
+      // 🔥 update state immediately
+      setBookings((prev) =>
+        prev.map((b) =>
+          b.id === id ? { ...b, status: "ongoing", amount: Number(price) } : b,
+        ),
+      );
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   return (
     <Container fluid style={{ fontFamily: "Poppins" }}>
       {/* Header */}
@@ -244,21 +321,22 @@ export default function Bookings() {
           color={activeTab === "approval" ? "success" : "secondary"}
           onClick={() => setActiveTab("approval")}
         >
-          Private Approval ({privateApproval.length})
+          Private Approval ({activeTab === "approval" ? bookings.length : ""})
         </Button>
 
         <Button
           color={activeTab === "private" ? "success" : "secondary"}
           onClick={() => setActiveTab("private")}
         >
-          Private Bookings ({privateApproved.length})
+          Private Bookings ({activeTab === "private" ? bookings.length : ""})
         </Button>
 
         <Button
           color={activeTab === "joiner" ? "success" : "secondary"}
           onClick={() => setActiveTab("joiner")}
         >
-          Joiner / Group Bookings ({joinerBookings.length})
+          Joiner / Group Bookings (
+          {activeTab === "joiner" ? bookings.length : ""})
         </Button>
       </div>
 
@@ -292,8 +370,8 @@ export default function Bookings() {
                         <td>{b.tourDate}</td>
                         <td className="text-end">{formatPeso(b.amount)}</td>
                         <td>
-                          <span style={statusPillStyle(b.status)}>
-                            {b.status}
+                          <span style={statusPillStyle(b.displayStatus)}>
+                            {b.displayStatus}
                           </span>
                         </td>
                         <td className="text-end">
@@ -313,9 +391,14 @@ export default function Bookings() {
                                 <Button
                                   size="sm"
                                   color="success"
-                                  onClick={() =>
-                                    updateStatus(b.id, "confirmed")
-                                  }
+                                  onClick={() => {
+                                    const price = prompt("Enter price:");
+                                    if (!price) return;
+
+                                    const remarks =
+                                      prompt("Remarks (optional):") || "";
+                                    approvePrivate(b.id, price, remarks);
+                                  }}
                                 >
                                   <FaCheck />
                                 </Button>
@@ -323,9 +406,7 @@ export default function Bookings() {
                                 <Button
                                   size="sm"
                                   color="danger"
-                                  onClick={() =>
-                                    updateStatus(b.id, "cancelled")
-                                  }
+                                  onClick={() => rejectPrivate(b.id)}
                                 >
                                   <FaTimes />
                                 </Button>
@@ -338,9 +419,7 @@ export default function Bookings() {
                                 <Button
                                   size="sm"
                                   color="danger"
-                                  onClick={() =>
-                                    updateStatus(b.id, "cancelled")
-                                  }
+                                  onClick={() => rejectPrivate(b.id)}
                                 >
                                   <FaTimes />
                                 </Button>
@@ -392,7 +471,7 @@ export default function Bookings() {
                         <Button
                           size="sm"
                           color="success"
-                          onClick={() => updateStatus(b.id, "confirmed")}
+                          onClick={() => approvePrivate(b.id, "confirmed")}
                         >
                           <FaCheck />
                         </Button>
@@ -400,7 +479,7 @@ export default function Bookings() {
                         <Button
                           size="sm"
                           color="danger"
-                          onClick={() => updateStatus(b.id, "cancelled")}
+                          onClick={() => rejectPrivate(b.id, "cancelled")}
                         >
                           <FaTimes />
                         </Button>
@@ -411,7 +490,7 @@ export default function Bookings() {
                       <Button
                         size="sm"
                         color="danger"
-                        onClick={() => updateStatus(b.id, "cancelled")}
+                        onClick={() => rejectPrivate(b.id, "cancelled")}
                       >
                         <FaTimes />
                       </Button>
@@ -433,100 +512,110 @@ export default function Bookings() {
       {/* ================= JOINER / GROUP VIEW ================= */}
       {activeTab === "joiner" && (
         <>
-          {Object.values(joinerByTour).map((tour) => (
-            <Card key={tour.tourTitle} className="mb-3">
-              <CardBody>
-                <h5 className="fw-bold">{tour.tourTitle}</h5>
+          {bookings
+            .filter((b) => b.mode === "joiner")
+            .map((tour) => {
+              if (!joinerCounts[tour.tourId]) {
+                fetchJoinerCount(tour.tourId);
+              }
 
-                <Button size="sm" outline onClick={() => setOpenTour(tour)}>
-                  View Clients ({tour.bookings.length})
-                </Button>
-              </CardBody>
-            </Card>
-          ))}
-
-          {openTour && (
-            <>
-              {/* DESKTOP TABLE */}
-              <div className="d-none d-md-block">
-                <div className="d-none d-md-block">
-                  <Card className="mt-4" style={headerCardStyle}>
-                    <CardBody style={{ padding: 0 }}>
-                      <Table hover responsive className="mb-0">
-                        <thead>
-                          <tr>
-                            <th>Client</th>
-                            <th>Email</th>
-                            <th>Phone</th>
-                            <th className="text-end">Amount</th>
-                            <th className="text-end">Action</th>
-                          </tr>
-                        </thead>
-
-                        <tbody>
-                          {openTour.bookings.map((b) => (
-                            <tr key={b.id}>
-                              <td>{b.customer}</td>
-                              <td>{b.email}</td>
-                              <td>{b.phone}</td>
-                              <td className="text-end">
-                                {formatPeso(b.amount)}
-                              </td>
-                              <td className="text-end">
-                                <Button
-                                  size="sm"
-                                  color="danger"
-                                  onClick={() =>
-                                    updateStatus(b.id, "cancelled")
-                                  }
-                                >
-                                  <FaTimes />
-                                </Button>
-                              </td>
-                            </tr>
-                          ))}
-
-                          {openTour.bookings.length === 0 && (
-                            <tr>
-                              <td
-                                colSpan="5"
-                                className="text-center text-muted p-4"
-                              >
-                                No clients found
-                              </td>
-                            </tr>
-                          )}
-                        </tbody>
-                      </Table>
-                    </CardBody>
-                  </Card>
-                </div>
-              </div>
-
-              {/* MOBILE CARDS */}
-              <div className="d-md-none">
-                {openTour.bookings.map((b) => (
-                  <Card key={b.id} className="mb-3">
+              return (
+                <div key={tour.tourId}>
+                  <Card className="mb-3">
                     <CardBody>
-                      <div className="fw-semibold">{b.customer}</div>
-                      <div className="text-muted small">{b.email}</div>
-                      <div className="text-muted small">{b.phone}</div>
+                      <h5 className="fw-bold">{tour.tourTitle}</h5>
 
-                      <div className="my-2 fw-bold">{formatPeso(b.amount)}</div>
+                      <div>
+                        Joiners Booked:{" "}
+                        <strong>{joinerCounts[tour.tourId] ?? 0}</strong>
+                      </div>
+
+                      <div>Max Slots: {tour.joinerMaxSlots}</div>
+
+                      <Button
+                        size="sm"
+                        color="primary"
+                        className="mt-2 me-2"
+                        onClick={() => {
+                          setOpenTour(tour.tourId);
+                          fetchJoinerDetails(tour.tourId);
+                        }}
+                      >
+                        View Clients
+                      </Button>
 
                       <Button
                         size="sm"
                         color="danger"
-                        onClick={() => updateStatus(b.id, "cancelled")}
+                        onClick={() => cancelJoinerBookings(tour.tourId)}
                       >
-                        <FaTimes /> Cancel
+                        Cancel All Joiners
                       </Button>
                     </CardBody>
                   </Card>
-                ))}
-              </div>
-            </>
-          )}
+
+                  {/* 👇 EXPANDED DETAILS INSIDE MAP */}
+                  {openTour === tour.tourId && joinerDetails[tour.tourId] && (
+                    <>
+                      {/* DESKTOP */}
+                      <div className="d-none d-md-block mt-3">
+                        <Table hover responsive>
+                          <thead>
+                            <tr>
+                              <th>Client</th>
+                              <th>Email</th>
+                              <th>Phone</th>
+                              <th>Pax</th>
+                              <th>Amount</th>
+                              <th>Status</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {joinerDetails[tour.tourId].map((client) => (
+                              <tr key={client.id}>
+                                <td>{client.fullName}</td>
+                                <td>{client.email}</td>
+                                <td>{client.phoneNumber}</td>
+                                <td>
+                                  {client.isVerified
+                                    ? "Verified"
+                                    : "Not Verified"}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </Table>
+                      </div>
+
+                      {/* MOBILE */}
+                      <div className="d-md-none mt-3">
+                        {joinerDetails[tour.tourId].map((client) => (
+                          <Card key={client.id} className="mb-2">
+                            <CardBody>
+                              <div className="fw-semibold">
+                                {client.fullName}
+                              </div>
+                              <div className="text-muted small">
+                                {client.email}
+                              </div>
+                              <div className="text-muted small">
+                                {client.phoneNumber}
+                              </div>
+                              <div>
+                                Status:{" "}
+                                {client.isVerified
+                                  ? "Verified"
+                                  : "Not Verified"}
+                              </div>
+                            </CardBody>
+                          </Card>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
+              );
+            })}
         </>
       )}
     </Container>

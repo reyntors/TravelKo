@@ -53,7 +53,6 @@ export default function Dashboard() {
           Authorization: `Bearer ${token}`,
         };
 
-        // Fetch tours + bookings in parallel
         const [toursRes, bookingsRes] = await Promise.all([
           api.get(`${import.meta.env.VITE_API_BASE_URL}tours`, { headers }),
           api.get(`${import.meta.env.VITE_API_BASE_URL}booking`, { headers }),
@@ -62,10 +61,8 @@ export default function Dashboard() {
         const tours = toursRes.data || [];
         const bookings = bookingsRes.data || [];
 
-        // ✅ Only YOUR tours
         const myTours = tours.filter((t) => t.coordinatorId === coordinator.id);
 
-        // ✅ Only bookings for YOUR tours
         const myBookings = bookings.filter(
           (b) => b?.tour?.coordinatorId === coordinator.id,
         );
