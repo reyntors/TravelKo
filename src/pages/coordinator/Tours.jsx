@@ -273,7 +273,7 @@ export default function CoordinatorTours() {
     // IMPORTANT: Append ONLY ONCE
     fd.append("availableDates", JSON.stringify(availableDatesPayload));
 
-    console.log("DATES:", availableDatesPayload);
+    // console.log("DATES:", availableDatesPayload);
 
     fd.append(
       "meetupLocations",
@@ -304,9 +304,9 @@ export default function CoordinatorTours() {
 
     form.pictures.forEach((file) => fd.append("pictures", file));
 
-    for (let pair of fd.entries()) {
-      console.log(pair[0], ":", pair[1]);
-    }
+    // for (let pair of fd.entries()) {
+    //   console.log(pair[0], ":", pair[1]);
+    // }
 
     const toastId = toast.loading(
       isEdit ? "Updating tour..." : "Creating tour...",
@@ -341,13 +341,16 @@ export default function CoordinatorTours() {
       resetForm();
       fetchMyTours();
     } catch (err) {
-      console.error(err);
+      console.error(err.response?.data);
+
+      const errorMessage =
+        err.response?.data?.message || "Something went wrong.";
 
       toast.update(toastId, {
-        render: "❌ Failed to save tour",
+        render: `❌ ${errorMessage}`,
         type: "error",
         isLoading: false,
-        autoClose: 3000,
+        autoClose: 4000,
       });
     } finally {
       setLoading(false);

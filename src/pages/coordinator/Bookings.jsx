@@ -565,8 +565,6 @@ export default function Bookings() {
                               <th>Client</th>
                               <th>Email</th>
                               <th>Phone</th>
-                              <th>Pax</th>
-                              <th>Amount</th>
                               <th>Status</th>
                             </tr>
                           </thead>

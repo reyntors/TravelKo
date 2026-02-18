@@ -1,71 +1,149 @@
-import { useParams } from "react-router-dom";
-import { Card, CardBody, Row, Col, Button } from "reactstrap";
+import { useEffect, useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import api from "@/services/api";
 
-export default function CoordinatorDetails() {
+export default function AdminCoordinatorDetails() {
   const { id } = useParams();
+  const navigate = useNavigate();
 
-  // ✅ Dummy coordinator data
-  const coordinator = {
-    id,
-    name: "Juan Dela Cruz",
-    email: "juan@email.com",
-    phone: "09123456789",
-    status: "Active",
+  const [coordinator, setCoordinator] = useState(null);
+  const [tours, setTours] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const token = localStorage.getItem("auth_token");
+
+        // 1️⃣ Fetch coordinator info
+        const coordRes = await api.get(`/auth/admin/approved-coordinators`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        const found = coordRes.data.find((c) => c.id === Number(id));
+        setCoordinator(found);
+
+        // 2️⃣ Fetch tours created by coordinator
+        const tourRes = await api.get(
+          `/auth/admin/tours-created-by-coordinator/${id}`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          },
+        );
+
+        const tourData = Array.isArray(tourRes.data) ? tourRes.data : [];
+
+        setTours(tourData);
+      } catch (err) {
+        console.error("Failed loading details:", err.response?.data);
+        alert(err.response?.data?.message || "Failed to load details");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [id]);
+
+  const deleteCoordinator = async () => {
+    const confirmDelete = window.confirm(
+      "Are you sure you want to delete this coordinator?",
+    );
+    if (!confirmDelete) return;
+
+    try {
+      const token = localStorage.getItem("auth_token");
+
+      await api.delete(`/auth/admin/delete-coordinator/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      alert("Coordinator deleted successfully");
+      navigate("/admin/coordinators");
+    } catch (err) {
+      console.error("Delete failed:", err.response?.data);
+      alert(err.response?.data?.message || "Delete failed");
+    }
   };
 
-  const tours = [
-    { id: 1, title: "Mt. Apo Climb", bookings: 12, revenue: 24000 },
-    { id: 2, title: "Dahican Surf Camp", bookings: 8, revenue: 16000 },
-  ];
+  const formatPeso = (n) =>
+    new Intl.NumberFormat("en-PH", {
+      style: "currency",
+      currency: "PHP",
+      maximumFractionDigits: 0,
+    }).format(n);
 
-  const totalRevenue = tours.reduce((sum, t) => sum + t.revenue, 0);
+  if (loading) return <p>Loading details...</p>;
+  if (!coordinator) return <p>Coordinator not found.</p>;
+
+  // 🔥 Compute revenue
+  const toursWithRevenue = tours.map((t) => {
+    const bookings = t.totalBookings || t.joinerBookedSlots || 0;
+    const revenue = bookings * (t.joinerPrice || 0);
+
+    return {
+      ...t,
+      bookings,
+      revenue,
+    };
+  });
+
+  const totalRevenue = toursWithRevenue.reduce((sum, t) => sum + t.revenue, 0);
 
   return (
-    <>
-      <h3 className="fw-bold mb-3">Coordinator Details</h3>
+    <div className="container mt-4">
+      <h2 className="fw-bold mb-4">Coordinator Details</h2>
 
-      {/* ACCOUNT DETAILS */}
-      <Card className="mb-4 shadow-sm">
-        <CardBody>
-          <h5>Account Information</h5>
-          <p>
-            <strong>Name:</strong> {coordinator.name}
-          </p>
-          <p>
-            <strong>Email:</strong> {coordinator.email}
-          </p>
-          <p>
-            <strong>Phone:</strong> {coordinator.phone}
-          </p>
-          <p>
-            <strong>Status:</strong> {coordinator.status}
-          </p>
+      {/* ACCOUNT INFORMATION */}
+      <div className="card p-4 mb-4 shadow-sm">
+        <h4 className="mb-3">Account Information</h4>
 
-          <Button color="danger" size="sm">
-            Delete Coordinator
-          </Button>
-        </CardBody>
-      </Card>
+        <p>
+          <strong>Name:</strong> {coordinator.fullName}
+        </p>
+        <p>
+          <strong>Email:</strong> {coordinator.email}
+        </p>
+        <p>
+          <strong>Phone:</strong> {coordinator.phoneNumber}
+        </p>
+        <p>
+          <strong>Status:</strong>{" "}
+          <span className="badge bg-success">
+            {coordinator.status || "Active"}
+          </span>
+        </p>
 
-      {/* TOURS */}
-      <Card className="shadow-sm">
-        <CardBody>
-          <h5>All Tours</h5>
+        <button className="btn btn-danger mt-3" onClick={deleteCoordinator}>
+          Delete Coordinator
+        </button>
+      </div>
 
-          {tours.map((t) => (
-            <Row key={t.id} className="border-bottom py-2">
-              <Col>{t.title}</Col>
-              <Col>Bookings: {t.bookings}</Col>
-              <Col>₱{t.revenue.toLocaleString()}</Col>
-            </Row>
-          ))}
+      {/* ALL TOURS */}
+      <div className="card p-4 shadow-sm">
+        <h4 className="mb-3">All Tours</h4>
 
-          <hr />
-          <h6 className="fw-bold">
-            Total Revenue: ₱{totalRevenue.toLocaleString()}
-          </h6>
-        </CardBody>
-      </Card>
-    </>
+        {toursWithRevenue.length === 0 ? (
+          <p className="text-muted">No tours found.</p>
+        ) : (
+          <>
+            {toursWithRevenue.map((tour) => (
+              <div
+                key={tour.id}
+                className="d-flex justify-content-between border-bottom py-2"
+              >
+                <div>{tour.title}</div>
+                <div>Bookings: {tour.bookings}</div>
+                <div>{formatPeso(tour.revenue)}</div>
+              </div>
+            ))}
+
+            <div className="mt-3 fw-bold">
+              Total Revenue: {formatPeso(totalRevenue)}
+            </div>
+          </>
+        )}
+      </div>
+    </div>
   );
 }
