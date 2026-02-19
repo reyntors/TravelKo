@@ -7,6 +7,7 @@ import {
   FaSignOutAlt,
   FaCalendarAlt,
   FaBars,
+  FaMapMarkerAlt,
 } from "react-icons/fa";
 
 export default function AdminNav() {
@@ -23,8 +24,18 @@ export default function AdminNav() {
   const menu = [
     { label: "Dashboard", to: "/admin/dashboard", icon: FaTachometerAlt },
     { label: "Coordinators", to: "/admin/coordinators", icon: FaUsers },
-    { label: "Bookings", to: "/admin/bookings", icon: FaCalendarAlt },
-    { label: "Applications", to: "/admin/applications", icon: FaUserCheck },
+    { label: "Tour Bookings", to: "/admin/bookings", icon: FaMapMarkerAlt },
+    {
+      label: "Booking",
+      to: "/admin/booking-applications",
+      icon: FaCalendarAlt,
+    },
+
+    {
+      label: "Coordinator Applications",
+      to: "/admin/applications",
+      icon: FaUserCheck,
+    },
   ];
 
   const isActive = (path) => location.pathname.startsWith(path);

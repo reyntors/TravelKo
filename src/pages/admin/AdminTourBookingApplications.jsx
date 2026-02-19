@@ -49,7 +49,7 @@ export default function AdminTourBookingsApplications() {
 
   return (
     <>
-      <h3 className="fw-bold mb-3">Tour Management</h3>
+      <h3 className="fw-bold mb-3">Bookings Management</h3>
 
       {/* ===== FILTER BUTTONS ===== */}
       <div className="d-flex gap-2 mb-4">

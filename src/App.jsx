@@ -29,6 +29,7 @@ import ManageCoordinators from "./pages/admin/ManageCoordinators";
 import CoordinatorApplications from "./pages/admin/CoordinatorApplications";
 import CoordinatorDetails from "./pages/admin/CoordinatorDetails";
 import AdminBookings from "./pages/admin/AdminBookings";
+import AdminTourBookingApplications from "./pages/admin/AdminTourBookingApplications";
 
 function App() {
   return (
@@ -190,6 +191,10 @@ function App() {
             element={<CoordinatorDetails />}
           />
           <Route path="/admin/bookings" element={<AdminBookings />} />
+          <Route
+            path="/admin/booking-applications"
+            element={<AdminTourBookingApplications />}
+          />
         </Route>
 
         {/* ================= FALLBACK ================= */}
