@@ -26,7 +26,7 @@ export default function AdminNav() {
     { label: "Coordinators", to: "/admin/coordinators", icon: FaUsers },
     { label: "Tour Bookings", to: "/admin/bookings", icon: FaMapMarkerAlt },
     {
-      label: "Booking",
+      label: "Bookings",
       to: "/admin/booking-applications",
       icon: FaCalendarAlt,
     },

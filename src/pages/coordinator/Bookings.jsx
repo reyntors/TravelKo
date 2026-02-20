@@ -30,7 +30,8 @@ export default function Bookings() {
   const [openTour, setOpenTour] = useState(null);
   const [joinerCounts, setJoinerCounts] = useState({});
   const [joinerDetails, setJoinerDetails] = useState({});
-
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [search, setSearch] = useState("");
   const fetchJoinerDetails = async (tourId) => {
     try {
       const token = localStorage.getItem("auth_token");
@@ -68,24 +69,36 @@ export default function Bookings() {
   };
 
   const dataToRender = useMemo(() => {
+    let filtered = bookings;
+
     if (activeTab === "approval") {
-      return bookings.filter(
+      filtered = filtered.filter(
         (b) => b.type === "private" && b.status === "request",
       );
     }
 
     if (activeTab === "private") {
-      return bookings.filter(
+      filtered = filtered.filter(
         (b) => b.type === "private" && b.status === "approved",
       );
     }
 
     if (activeTab === "joiner") {
-      return bookings.filter((b) => b.type === "joiner");
+      filtered = filtered.filter((b) => b.mode === "joiner");
     }
 
-    return bookings;
-  }, [bookings, activeTab]);
+    if (statusFilter !== "all") {
+      filtered = filtered.filter((b) => b.status === statusFilter);
+    }
+
+    if (search) {
+      filtered = filtered.filter((b) =>
+        b.tourTitle?.toLowerCase().includes(search.toLowerCase()),
+      );
+    }
+
+    return filtered;
+  }, [bookings, activeTab, statusFilter, search]);
 
   useEffect(() => {
     setOpenTour(null);
@@ -316,29 +329,51 @@ export default function Bookings() {
       </Row>
 
       {/* Tabs */}
-      <div className="d-flex gap-2 mb-4">
-        <Button
-          color={activeTab === "approval" ? "success" : "secondary"}
-          onClick={() => setActiveTab("approval")}
-        >
-          Private Approval ({activeTab === "approval" ? bookings.length : ""})
-        </Button>
+      {/* 🔥 CLEAN MODERN FILTER BAR */}
+      <Card className="mb-4 shadow-sm" style={{ borderRadius: 14 }}>
+        <CardBody>
+          <Row className="g-3 align-items-end">
+            <Col md="3">
+              <label className="fw-semibold mb-1">View</label>
+              <Input
+                type="select"
+                value={activeTab}
+                onChange={(e) => setActiveTab(e.target.value)}
+              >
+                <option value="approval">Private Approval</option>
+                <option value="private">Private Bookings</option>
+                <option value="joiner">Joiner / Group</option>
+              </Input>
+            </Col>
 
-        <Button
-          color={activeTab === "private" ? "success" : "secondary"}
-          onClick={() => setActiveTab("private")}
-        >
-          Private Bookings ({activeTab === "private" ? bookings.length : ""})
-        </Button>
+            {activeTab !== "joiner" && (
+              <Col md="3">
+                <label className="fw-semibold mb-1">Status</label>
+                <Input
+                  type="select"
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                >
+                  <option value="all">All</option>
+                  <option value="request">Request</option>
+                  <option value="approved">Approved</option>
+                  <option value="cancelled">Cancelled</option>
+                </Input>
+              </Col>
+            )}
 
-        <Button
-          color={activeTab === "joiner" ? "success" : "secondary"}
-          onClick={() => setActiveTab("joiner")}
-        >
-          Joiner / Group Bookings (
-          {activeTab === "joiner" ? bookings.length : ""})
-        </Button>
-      </div>
+            <Col md="4">
+              <label className="fw-semibold mb-1">Search</label>
+              <Input
+                type="text"
+                placeholder="Search tour..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </Col>
+          </Row>
+        </CardBody>
+      </Card>
 
       {/* ================= PRIVATE APPROVAL + PRIVATE LIST ================= */}
       {activeTab !== "joiner" && (
@@ -347,8 +382,8 @@ export default function Bookings() {
           <div className="d-none d-md-block">
             <Card style={headerCardStyle}>
               <CardBody style={{ padding: 0 }}>
-                <Table hover responsive className="mb-0">
-                  <thead>
+                <Table hover responsive className="mb-0 align-middle">
+                  <thead className="table-light">
                     <tr>
                       <th>Booking</th>
                       <th>Customer</th>
@@ -559,8 +594,8 @@ export default function Bookings() {
                     <>
                       {/* DESKTOP */}
                       <div className="d-none d-md-block mt-3">
-                        <Table hover responsive>
-                          <thead>
+                        <Table hover responsive className="align-middle">
+                          <thead className="table-light">
                             <tr>
                               <th>Client</th>
                               <th>Email</th>

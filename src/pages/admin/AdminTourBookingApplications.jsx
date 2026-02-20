@@ -1,151 +1,308 @@
-import { useState } from "react";
-import { Card, CardBody, Button, Badge } from "reactstrap";
+import { useState, useEffect } from "react";
+import api from "@/services/api";
+import {
+  Table,
+  Button,
+  Badge,
+  Input,
+  Row,
+  Col,
+  Modal,
+  ModalHeader,
+  ModalBody,
+  Spinner,
+} from "reactstrap";
 
-export default function AdminTourBookingsApplications() {
+export default function AdminBookingsManagement() {
+  const [activeType, setActiveType] = useState("private");
   const [filter, setFilter] = useState("all");
+  const [loading, setLoading] = useState(false);
 
-  const [bookings, setBookings] = useState([
-    {
-      id: 1,
-      tour: "Mt. Apo Climb",
-      name: "Maria Santos",
-      email: "maria@email.com",
-      phone: "09123400000",
-      status: "Paid",
-    },
-    {
-      id: 2,
-      tour: "Mt. Apo Climb",
-      name: "John Cruz",
-      email: "john@email.com",
-      phone: "0999999999",
-      status: "Cancelled",
-    },
-  ]);
+  const [bookings, setBookings] = useState([]);
+  const [selectedBooking, setSelectedBooking] = useState(null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
 
+  const toggleDetails = () => setDetailsOpen(!detailsOpen);
+
+  // ================= FETCH DATA =================
+  useEffect(() => {
+    const fetchBookings = async () => {
+      try {
+        setLoading(true);
+        const token = localStorage.getItem("auth_token");
+
+        if (activeType === "private") {
+          const res = await api.get("/booking/private/find-all", {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+
+          const normalized = res.data.map((b) => ({
+            id: b.id,
+            bookingType: "private",
+            tour: b.tour?.title || "—",
+            name: b.booker?.fullName || "—",
+            email: b.booker?.email || "—",
+            phone: b.booker?.phoneNumber || "—",
+            participants: b.bookingIndividuals || 0,
+            amount: b.amount || 0,
+            status: b.status,
+            raw: b,
+          }));
+
+          setBookings(normalized);
+        }
+
+        if (activeType === "joiner") {
+          const res = await api.get("/booking/joiner/find-all", {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+
+          const normalized = res.data.map((tour) => ({
+            id: tour.id,
+            bookingType: "joiner",
+            tour: tour.title,
+            participants: tour.joinerBookedSlots,
+            amount: tour.joinerPrice,
+            status: "group",
+            raw: tour,
+          }));
+
+          setBookings(normalized);
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchBookings();
+  }, [activeType]);
+
+  // ================= STATUS UPDATE (LOCAL ONLY FOR NOW) =================
   const updateStatus = (id, newStatus) => {
     setBookings((prev) =>
       prev.map((b) => (b.id === id ? { ...b, status: newStatus } : b)),
     );
   };
 
-  const filteredBookings =
-    filter === "all"
-      ? bookings
-      : bookings.filter((b) => b.status.toLowerCase() === filter.toLowerCase());
+  const formatPeso = (n) =>
+    new Intl.NumberFormat("en-PH", {
+      style: "currency",
+      currency: "PHP",
+      maximumFractionDigits: 0,
+    }).format(n);
 
   const badgeColor = (status) => {
     switch (status) {
-      case "Paid":
+      case "request":
+        return "secondary";
+      case "approved":
         return "success";
-      case "Cancelled":
+      case "ongoing":
+        return "primary";
+      case "completed":
+        return "dark";
+      case "cancelled":
+      case "rejected":
         return "danger";
-      case "Refunded":
+      case "refunded":
         return "warning";
       default:
-        return "secondary";
+        return "light";
     }
   };
 
+  const filteredBookings = bookings.filter((b) =>
+    filter === "all" ? true : b.status === filter,
+  );
+
   return (
     <>
-      <h3 className="fw-bold mb-3">Bookings Management</h3>
+      <h3 className="fw-bold mb-4">Bookings Management</h3>
 
-      {/* ===== FILTER BUTTONS ===== */}
-      <div className="d-flex gap-2 mb-4">
-        <Button
-          size="sm"
-          color={filter === "all" ? "dark" : "secondary"}
-          onClick={() => setFilter("all")}
-        >
-          All
-        </Button>
+      {/* FILTER BAR */}
+      <Row className="mb-4">
+        <Col md="3">
+          <label className="fw-semibold mb-1">Booking Type</label>
+          <Input
+            type="select"
+            value={activeType}
+            onChange={(e) => setActiveType(e.target.value)}
+          >
+            <option value="private">Private</option>
+            <option value="joiner">Joiner</option>
+          </Input>
+        </Col>
 
-        <Button
-          size="sm"
-          color={filter === "paid" ? "success" : "secondary"}
-          onClick={() => setFilter("paid")}
-        >
-          Paid
-        </Button>
+        <Col md="3">
+          <label className="fw-semibold mb-1">Status</label>
+          <Input
+            type="select"
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+          >
+            <option value="all">All</option>
+            <option value="request">Request</option>
+            <option value="approved">Approved</option>
+            <option value="ongoing">Ongoing</option>
+            <option value="completed">Completed</option>
+            <option value="cancelled">Cancelled</option>
+            <option value="rejected">Rejected</option>
+            <option value="refunded">Refunded</option>
+          </Input>
+        </Col>
+      </Row>
 
-        <Button
-          size="sm"
-          color={filter === "cancelled" ? "danger" : "secondary"}
-          onClick={() => setFilter("cancelled")}
-        >
-          Cancelled
-        </Button>
+      {loading ? (
+        <div className="text-center py-5">
+          <Spinner />
+        </div>
+      ) : (
+        <div className="table-responsive">
+          <Table bordered hover>
+            <thead className="table-light">
+              <tr>
+                <th>ID</th>
+                <th>Tour</th>
+                <th>Customer</th>
+                <th>Pax</th>
+                <th>Amount</th>
+                <th>Status</th>
+                <th width="280">Actions</th>
+              </tr>
+            </thead>
 
-        <Button
-          size="sm"
-          color={filter === "refunded" ? "warning" : "secondary"}
-          onClick={() => setFilter("refunded")}
-        >
-          Refunded
-        </Button>
-      </div>
+            <tbody>
+              {filteredBookings.length === 0 && (
+                <tr>
+                  <td colSpan="7" className="text-center text-muted">
+                    No bookings found
+                  </td>
+                </tr>
+              )}
 
-      {/* ===== BOOKINGS LIST ===== */}
-      {filteredBookings.length === 0 && (
-        <p className="text-muted">No bookings found.</p>
+              {filteredBookings.map((b) => (
+                <tr key={b.id}>
+                  <td>{b.id}</td>
+                  <td>{b.tour}</td>
+
+                  <td>
+                    {b.bookingType === "private" ? (
+                      <>
+                        <div className="fw-semibold">{b.name}</div>
+                        <div className="text-muted small">{b.email}</div>
+                      </>
+                    ) : (
+                      <div className="fw-semibold text-primary">
+                        Joiner Group
+                      </div>
+                    )}
+                  </td>
+
+                  <td>{b.participants}</td>
+                  <td>{formatPeso(b.amount)}</td>
+
+                  <td>
+                    <Badge color={badgeColor(b.status)}>
+                      {b.status?.toUpperCase()}
+                    </Badge>
+                  </td>
+
+                  <td>
+                    <div className="d-flex gap-2 flex-wrap">
+                      <Button
+                        size="sm"
+                        color="info"
+                        onClick={() => {
+                          setSelectedBooking(b);
+                          setDetailsOpen(true);
+                        }}
+                      >
+                        View
+                      </Button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </Table>
+
+          {/* DETAILS MODAL */}
+          <Modal isOpen={detailsOpen} toggle={toggleDetails} size="lg">
+            <ModalHeader toggle={toggleDetails}>Booking Details</ModalHeader>
+
+            <ModalBody>
+              {selectedBooking && (
+                <>
+                  <h5 className="fw-bold mb-3">Tour Information</h5>
+
+                  <p>
+                    <strong>Tour:</strong> {selectedBooking.tour}
+                  </p>
+                  <p>
+                    <strong>Type:</strong> {selectedBooking.bookingType}
+                  </p>
+                  <p>
+                    <strong>Status:</strong> {selectedBooking.status}
+                  </p>
+                  <p>
+                    <strong>Amount:</strong>{" "}
+                    {formatPeso(selectedBooking.amount)}
+                  </p>
+                  <p>
+                    <strong>Participants:</strong>{" "}
+                    {selectedBooking.participants}
+                  </p>
+
+                  <hr />
+
+                  {selectedBooking.bookingType === "private" && (
+                    <>
+                      <h6 className="fw-bold">Booker Information</h6>
+                      <p>
+                        <strong>Name:</strong> {selectedBooking.name}
+                      </p>
+                      <p>
+                        <strong>Email:</strong> {selectedBooking.email}
+                      </p>
+                      <p>
+                        <strong>Phone:</strong> {selectedBooking.phone}
+                      </p>
+                    </>
+                  )}
+
+                  {selectedBooking.bookingType === "joiner" && (
+                    <>
+                      <h6 className="fw-bold mt-3">All Joiners</h6>
+                      <Table bordered size="sm">
+                        <thead>
+                          <tr>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Phone</th>
+                            <th>Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {selectedBooking.raw.bookings.map((j) => (
+                            <tr key={j.id}>
+                              <td>{j.booker.fullName}</td>
+                              <td>{j.booker.email}</td>
+                              <td>{j.booker.phoneNumber}</td>
+                              <td>{j.status}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </Table>
+                    </>
+                  )}
+                </>
+              )}
+            </ModalBody>
+          </Modal>
+        </div>
       )}
-
-      {filteredBookings.map((b) => (
-        <Card key={b.id} className="mb-3 shadow-sm">
-          <CardBody>
-            <h6 className="fw-bold">{b.tour}</h6>
-
-            <p className="mb-1">
-              <strong>Name:</strong> {b.name}
-            </p>
-            <p className="mb-1">
-              <strong>Email:</strong> {b.email}
-            </p>
-            <p className="mb-2">
-              <strong>Phone:</strong> {b.phone}
-            </p>
-
-            {/* STATUS BADGE */}
-            <Badge color={badgeColor(b.status)} className="me-2">
-              {b.status}
-            </Badge>
-
-            {/* ACTION BUTTONS */}
-            <div className="mt-3 d-flex gap-2 flex-wrap">
-              {b.status !== "Paid" && (
-                <Button
-                  size="sm"
-                  color="success"
-                  onClick={() => updateStatus(b.id, "Paid")}
-                >
-                  Mark as Paid
-                </Button>
-              )}
-
-              {b.status !== "Cancelled" && (
-                <Button
-                  size="sm"
-                  color="danger"
-                  onClick={() => updateStatus(b.id, "Cancelled")}
-                >
-                  Cancel
-                </Button>
-              )}
-
-              {b.status === "Paid" && (
-                <Button
-                  size="sm"
-                  color="warning"
-                  onClick={() => updateStatus(b.id, "Refunded")}
-                >
-                  Refund
-                </Button>
-              )}
-            </div>
-          </CardBody>
-        </Card>
-      ))}
     </>
   );
 }
