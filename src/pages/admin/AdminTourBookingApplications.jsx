@@ -13,6 +13,19 @@ import {
   Spinner,
 } from "reactstrap";
 
+// ================= JOINER STATUS AGGREGATOR =================
+const computeJoinerTourStatus = (tour) => {
+  const statuses = tour.bookings.map((b) => b.status);
+
+  if (statuses.every((s) => s === "cancelled")) return "cancelled";
+  if (statuses.every((s) => s === "refunded")) return "refunded";
+  if (statuses.some((s) => s === "refunded")) return "pending refund";
+  if (statuses.every((s) => s === "completed")) return "completed";
+  if (statuses.every((s) => s === "paid")) return "paid";
+
+  return "ongoing";
+};
+
 export default function AdminBookingsManagement() {
   const [activeType, setActiveType] = useState("private");
   const [filter, setFilter] = useState("all");
@@ -63,7 +76,7 @@ export default function AdminBookingsManagement() {
             tour: tour.title,
             participants: tour.joinerBookedSlots,
             amount: tour.joinerPrice,
-            status: "group",
+            status: computeJoinerTourStatus(tour), // 🔥 changed
             raw: tour,
           }));
 
@@ -80,10 +93,34 @@ export default function AdminBookingsManagement() {
   }, [activeType]);
 
   // ================= STATUS UPDATE (LOCAL ONLY FOR NOW) =================
-  const updateStatus = (id, newStatus) => {
-    setBookings((prev) =>
-      prev.map((b) => (b.id === id ? { ...b, status: newStatus } : b)),
-    );
+  // ================= PRIVATE UPDATE =================
+  const updatePrivateStatus = async (id, status) => {
+    try {
+      await api.put(`/booking/private/update-status/${id}`, { status });
+
+      setBookings((prev) =>
+        prev.map((b) => (b.id === id ? { ...b, status } : b)),
+      );
+
+      setSelectedBooking((prev) => (prev ? { ...prev, status } : prev));
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // ================= JOINER MASS UPDATE =================
+  const updateJoinerStatus = async (tourId, status) => {
+    try {
+      await api.put(`/booking/joiner/update-status/${tourId}`, { status });
+
+      setBookings((prev) =>
+        prev.map((b) => (b.id === tourId ? { ...b, status } : b)),
+      );
+
+      setSelectedBooking((prev) => (prev ? { ...prev, status } : prev));
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const formatPeso = (n) =>
@@ -269,6 +306,41 @@ export default function AdminBookingsManagement() {
                       <p>
                         <strong>Phone:</strong> {selectedBooking.phone}
                       </p>
+                      {/* PRIVATE ACTIONS */}
+                      {selectedBooking.status === "rejected" && (
+                        <Button
+                          color="warning"
+                          className="me-2"
+                          onClick={() =>
+                            updatePrivateStatus(selectedBooking.id, "refunded")
+                          }
+                        >
+                          Mark as Refunded
+                        </Button>
+                      )}
+
+                      {selectedBooking.status === "approved" && (
+                        <Button
+                          color="success"
+                          className="me-2"
+                          onClick={() =>
+                            updatePrivateStatus(selectedBooking.id, "paid")
+                          }
+                        >
+                          Mark as Paid
+                        </Button>
+                      )}
+
+                      {selectedBooking.status === "refunded" && (
+                        <Button
+                          color="secondary"
+                          onClick={() =>
+                            updatePrivateStatus(selectedBooking.id, "approved")
+                          }
+                        >
+                          Undo
+                        </Button>
+                      )}
                     </>
                   )}
 
@@ -295,6 +367,41 @@ export default function AdminBookingsManagement() {
                           ))}
                         </tbody>
                       </Table>
+                      {/* JOINER ACTIONS */}
+                      {selectedBooking.status === "cancelled" && (
+                        <Button
+                          color="warning"
+                          className="me-2"
+                          onClick={() =>
+                            updateJoinerStatus(selectedBooking.id, "refunded")
+                          }
+                        >
+                          Mark All Refunded
+                        </Button>
+                      )}
+
+                      {selectedBooking.status === "completed" && (
+                        <Button
+                          color="success"
+                          className="me-2"
+                          onClick={() =>
+                            updateJoinerStatus(selectedBooking.id, "paid")
+                          }
+                        >
+                          Mark All Paid
+                        </Button>
+                      )}
+
+                      {selectedBooking.status === "refunded" && (
+                        <Button
+                          color="secondary"
+                          onClick={() =>
+                            updateJoinerStatus(selectedBooking.id, "approved")
+                          }
+                        >
+                          Undo
+                        </Button>
+                      )}
                     </>
                   )}
                 </>

@@ -24,7 +24,7 @@ export default function AdminNav() {
   const menu = [
     { label: "Dashboard", to: "/admin/dashboard", icon: FaTachometerAlt },
     { label: "Coordinators", to: "/admin/coordinators", icon: FaUsers },
-    { label: "Tour Bookings", to: "/admin/bookings", icon: FaMapMarkerAlt },
+    // { label: "Tour Bookings", to: "/admin/bookings", icon: FaMapMarkerAlt },
     {
       label: "Bookings",
       to: "/admin/booking-applications",
