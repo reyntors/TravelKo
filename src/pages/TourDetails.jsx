@@ -421,10 +421,10 @@ export default function AdventureDetails() {
               {tour.coordinator?.businessName || "Adventure Pro Tour"}
             </p>
 
-            <p>
+            {/* <p>
               <FaPhone className="me-2" />
               {tour.coordinator?.phoneNumber || "Phone not available"}
-            </p>
+            </p> */}
 
             <p className="text-success">Book a Private Tour »</p>
           </Col>

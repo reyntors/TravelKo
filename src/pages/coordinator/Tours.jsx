@@ -132,14 +132,13 @@ export default function CoordinatorTours() {
       pictures: [],
     });
 
-    const parsedDates = parseAvailableDates(tour.availableDates).map((d) => ({
-      startDate: d.start.toISOString().slice(0, 10),
-      endDate: d.end.toISOString().slice(0, 10),
-    }));
+    const parsed = parseAvailableDates(tour.availableDates);
 
-    setDateRanges(
-      parsedDates.length ? parsedDates : [{ startDate: "", endDate: "" }],
-    );
+    if (parsed.length > 0) {
+      setDateRange([parsed[0].start, parsed[0].end]);
+    } else {
+      setDateRange([null, null]);
+    }
 
     setOpen(true);
   };

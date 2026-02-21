@@ -469,11 +469,10 @@ function BookAdventure() {
 
                 <p>
                   <strong>Date:</strong>{" "}
-                  {selectedDate
-                    ? `${formatDate(selectedDate.start)} – ${formatDate(
-                        selectedDate.end,
-                      )}`
-                    : "Not selected"}
+                  {dateRanges.length > 0 &&
+                    `${formatDate(dateRanges[0].display)} – ${formatDate(
+                      dateRanges[dateRanges.length - 1].display,
+                    )}`}
                 </p>
 
                 <p>

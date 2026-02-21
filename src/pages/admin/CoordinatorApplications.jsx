@@ -32,7 +32,7 @@ export default function CoordinatorApplications() {
     try {
       const token = localStorage.getItem("auth_token");
 
-      await api.put(
+      await api.patch(
         `/auth/admin/approve-coordinator/${id}`,
         {},
         {

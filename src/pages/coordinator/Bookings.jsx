@@ -245,6 +245,7 @@ export default function Bookings() {
   };
 
   const cancelJoinerBookings = async (tourId) => {
+    console.log(tourId);
     try {
       const token = localStorage.getItem("auth_token");
 

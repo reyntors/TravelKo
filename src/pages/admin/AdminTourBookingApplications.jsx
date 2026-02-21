@@ -59,6 +59,7 @@ export default function AdminBookingsManagement() {
             participants: b.bookingIndividuals || 0,
             amount: b.amount || 0,
             status: b.status,
+            createdAt: b.createdAt,
             raw: b,
           }));
 
@@ -77,6 +78,7 @@ export default function AdminBookingsManagement() {
             participants: tour.joinerBookedSlots,
             amount: tour.joinerPrice,
             status: computeJoinerTourStatus(tour), // 🔥 changed
+            createdAt: tour.createdAt,
             raw: tour,
           }));
 
@@ -110,8 +112,11 @@ export default function AdminBookingsManagement() {
 
   // ================= JOINER MASS UPDATE =================
   const updateJoinerStatus = async (tourId, status) => {
+    console.log(tourId);
     try {
-      await api.put(`/booking/joiner/update-status/${tourId}`, { status });
+      await api.patch(`/booking/joiner/update-status-to-paid/${tourId}`, {
+        status,
+      });
 
       setBookings((prev) =>
         prev.map((b) => (b.id === tourId ? { ...b, status } : b)),
@@ -119,7 +124,7 @@ export default function AdminBookingsManagement() {
 
       setSelectedBooking((prev) => (prev ? { ...prev, status } : prev));
     } catch (err) {
-      console.error(err);
+      console.error(err.response?.data);
     }
   };
 
@@ -129,6 +134,18 @@ export default function AdminBookingsManagement() {
       currency: "PHP",
       maximumFractionDigits: 0,
     }).format(n);
+
+  const formatDateTime = (dateString) => {
+    if (!dateString) return "—";
+
+    return new Date(dateString).toLocaleString("en-PH", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
 
   const badgeColor = (status) => {
     switch (status) {
@@ -201,11 +218,13 @@ export default function AdminBookingsManagement() {
             <thead className="table-light">
               <tr>
                 <th>ID</th>
+
                 <th>Tour</th>
                 <th>Customer</th>
                 <th>Pax</th>
                 <th>Amount</th>
                 <th>Status</th>
+                <th>Date</th>
                 <th width="280">Actions</th>
               </tr>
             </thead>
@@ -245,6 +264,7 @@ export default function AdminBookingsManagement() {
                       {b.status?.toUpperCase()}
                     </Badge>
                   </td>
+                  <td>{formatDateTime(b.createdAt)}</td>
 
                   <td>
                     <div className="d-flex gap-2 flex-wrap">
@@ -380,7 +400,7 @@ export default function AdminBookingsManagement() {
                         </Button>
                       )}
 
-                      {selectedBooking.status === "completed" && (
+                      {selectedBooking.status === "ongoing" && (
                         <Button
                           color="success"
                           className="me-2"
