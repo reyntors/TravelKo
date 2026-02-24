@@ -481,10 +481,11 @@ function BookAdventure() {
                 </p>
 
                 <hr />
-
-                <h4 className="text-success fw-bold">
-                  ₱{totalAmount.toLocaleString()}
-                </h4>
+                {bookingType === "group" && (
+                  <h4 className="text-success fw-bold">
+                    ₱{totalAmount.toLocaleString()}
+                  </h4>
+                )}
 
                 <Button
                   color="success"
