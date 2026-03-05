@@ -42,51 +42,34 @@ export default function Dashboard() {
   }, []);
 
   useEffect(() => {
-    const fetchDashboardStats = async () => {
+    const fetchCoordinatorStats = async () => {
       try {
         const token = localStorage.getItem("auth_token");
-        const coordinator = JSON.parse(
-          localStorage.getItem("auth_user") || "{}",
+        if (!token) return;
+
+        const res = await api.get(
+          `${import.meta.env.VITE_API_BASE_URL}auth/coordinator/stats`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          },
         );
 
-        const headers = {
-          Authorization: `Bearer ${token}`,
-        };
-
-        const [toursRes, bookingsRes] = await Promise.all([
-          api.get(`${import.meta.env.VITE_API_BASE_URL}tours`, { headers }),
-          api.get(`${import.meta.env.VITE_API_BASE_URL}booking`, { headers }),
-        ]);
-
-        const tours = toursRes.data || [];
-        const bookings = bookingsRes.data || [];
-
-        const myTours = tours.filter((t) => t.coordinatorId === coordinator.id);
-
-        const myBookings = bookings.filter(
-          (b) => b?.tour?.coordinatorId === coordinator.id,
-        );
-
-        const activeBookings = myBookings.filter(
-          (b) => b.status === "pending" || b.status === "confirmed",
-        );
-
-        const totalRevenue = myBookings
-          .filter((b) => b.status === "confirmed")
-          .reduce((sum, b) => sum + Number(b.amountPaid || 0), 0);
+        const data = res.data;
 
         setStats({
-          totalTours: myTours.length,
-          activeBookings: activeBookings.length,
-          totalRevenue,
-          avgRating: 4.8,
+          totalTours: data.totalTours || 0,
+          activeBookings: data.activeBookings || 0,
+          totalRevenue: Number(data.totalRevenue || 0),
+          avgRating: data.avgRating || 0,
         });
       } catch (err) {
-        console.error("Failed to load dashboard stats", err);
+        console.error("Failed to load coordinator stats", err.response?.data);
       }
     };
 
-    fetchDashboardStats();
+    fetchCoordinatorStats();
   }, []);
 
   const openViewModal = (booking) => {

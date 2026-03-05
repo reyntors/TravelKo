@@ -19,17 +19,46 @@ export default function ManageCoordinators() {
           },
         });
 
-        const data = Array.isArray(res.data) ? res.data : [];
+        const coordinatorsData = Array.isArray(res.data) ? res.data : [];
 
-        const normalized = data.map((c) => ({
-          id: c.id,
-          name: c.fullName || "—",
-          email: c.email || "—",
-          tours: c.tours?.length || c.totalTours || 0, // adjust depending on backend
-          status: c.status || "Active",
-        }));
+        // 🔥 Fetch tours for each coordinator
+        const coordinatorsWithTours = await Promise.all(
+          coordinatorsData.map(async (c) => {
+            try {
+              const toursRes = await api.get(
+                `/auth/admin/tours-created-by-coordinator/${c.id}`,
+                {
+                  headers: {
+                    Authorization: `Bearer ${token}`,
+                  },
+                },
+              );
 
-        setCoordinators(normalized);
+              return {
+                id: c.id,
+                name: c.fullName || "—",
+                email: c.email || "—",
+                tours: Array.isArray(toursRes.data) ? toursRes.data.length : 0,
+                status: c.status || "Active",
+              };
+            } catch (err) {
+              console.error(
+                `Failed to fetch tours for coordinator ${c.id}`,
+                err.response?.data,
+              );
+
+              return {
+                id: c.id,
+                name: c.fullName || "—",
+                email: c.email || "—",
+                tours: 0,
+                status: c.status || "Active",
+              };
+            }
+          }),
+        );
+
+        setCoordinators(coordinatorsWithTours);
       } catch (err) {
         console.error("Failed to fetch coordinators:", err.response?.data);
         alert(err.response?.data?.message || "Failed to load coordinators");
