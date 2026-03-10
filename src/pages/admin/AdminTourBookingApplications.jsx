@@ -157,6 +157,8 @@ export default function AdminBookingsManagement() {
         return "primary";
       case "completed":
         return "dark";
+      case "paid":
+        return "success";
       case "cancelled":
       case "rejected":
         return "danger";
@@ -400,7 +402,7 @@ export default function AdminBookingsManagement() {
                         </Button>
                       )}
 
-                      {selectedBooking.status === "ongoing" && (
+                      {selectedBooking.status === "completed" && (
                         <Button
                           color="success"
                           className="me-2"
