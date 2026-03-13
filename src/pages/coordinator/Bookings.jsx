@@ -12,6 +12,10 @@ import {
   DropdownToggle,
   DropdownMenu,
   DropdownItem,
+  Modal,
+  ModalHeader,
+  ModalBody,
+  Spinner,
 } from "reactstrap";
 import { FaSearch, FaEye, FaCheck, FaTimes } from "react-icons/fa";
 import api from "@/services/api";
@@ -32,6 +36,10 @@ export default function Bookings() {
   const [joinerDetails, setJoinerDetails] = useState({});
   const [statusFilter, setStatusFilter] = useState("all");
   const [search, setSearch] = useState("");
+  const [viewModalOpen, setViewModalOpen] = useState(false);
+  const [selectedBooking, setSelectedBooking] = useState(null);
+  const [selectedTour, setSelectedTour] = useState(null);
+  const [viewLoading, setViewLoading] = useState(false);
   const fetchJoinerDetails = async (tourId) => {
     try {
       const token = localStorage.getItem("auth_token");
@@ -140,7 +148,6 @@ export default function Bookings() {
             joinerMaxSlots: tour.joinerMaxSlots || 0,
           }));
         } else {
-          // ✅ PRIVATE + APPROVAL STRUCTURE (booking-based)
           normalized = data.map((b) => ({
             mode: "private",
             id: b.id,
@@ -245,7 +252,6 @@ export default function Bookings() {
   };
 
   const cancelJoinerBookings = async (tourId) => {
-    console.log(tourId);
     try {
       const token = localStorage.getItem("auth_token");
 
@@ -267,12 +273,24 @@ export default function Bookings() {
     }
   };
 
-  const handleView = (b) => {
-    alert(
-      `Booking ${b.id}\n\nTour: ${b.tourTitle}\nCustomer: ${b.customer}\nDate: ${b.tourDate}\nType: ${b.type}\nAmount: ${formatPeso(
-        b.amount,
-      )}\nStatus: ${b.status}`,
-    );
+  const handleView = async (b) => {
+    try {
+      setViewLoading(true);
+      setViewModalOpen(true);
+      setSelectedBooking(b);
+
+      const token = localStorage.getItem("auth_token");
+
+      const res = await api.get(`/tours/${b.tourId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      setSelectedTour(res.data);
+    } catch (err) {
+      console.error("Failed to fetch tour", err);
+    } finally {
+      setViewLoading(false);
+    }
   };
 
   const headerCardStyle = {
@@ -652,6 +670,99 @@ export default function Bookings() {
             })}
         </>
       )}
+      {/* ===== VIEW BOOKING MODAL ===== */}
+      <Modal
+        isOpen={viewModalOpen}
+        toggle={() => setViewModalOpen(false)}
+        centered
+        size="lg"
+      >
+        <ModalHeader toggle={() => setViewModalOpen(false)}>
+          Booking Details
+        </ModalHeader>
+
+        <ModalBody>
+          {viewLoading ? (
+            <div className="text-center py-5">
+              <Spinner style={{ width: "3rem", height: "3rem" }} />
+              <div className="mt-3 text-muted">Loading tour details...</div>
+            </div>
+          ) : (
+            selectedBooking && (
+              <Row className="g-3">
+                {/* LEFT SIDE */}
+                <Col md="6">
+                  <h5 className="fw-bold mb-3">{selectedTour?.title || "—"}</h5>
+
+                  <p>
+                    <strong>Customer:</strong> {selectedBooking.customer}
+                  </p>
+
+                  <p>
+                    <strong>Email:</strong> {selectedBooking.email}
+                  </p>
+
+                  <p>
+                    <strong>Phone:</strong> {selectedBooking.phone}
+                  </p>
+
+                  <p>
+                    <strong>Tour Date:</strong> {selectedBooking.tourDate}
+                  </p>
+
+                  <p>
+                    <strong>Booking Type:</strong> {selectedBooking.type}
+                  </p>
+
+                  <p>
+                    <strong>Status:</strong>{" "}
+                    <span style={statusPillStyle(selectedBooking.status)}>
+                      {selectedBooking.status}
+                    </span>
+                  </p>
+
+                  <h5 className="fw-bold mt-3">
+                    {formatPeso(selectedBooking.amount)}
+                  </h5>
+                </Col>
+
+                {/* RIGHT SIDE */}
+                <Col md="6">
+                  <Card className="shadow-sm">
+                    <CardBody>
+                      <h6 className="fw-bold mb-2">Tour Information</h6>
+
+                      <p>
+                        <strong>Category:</strong>{" "}
+                        {selectedTour?.category || "—"}
+                      </p>
+
+                      <p>
+                        <strong>Joiner Price:</strong>{" "}
+                        {selectedTour?.joinerPrice
+                          ? formatPeso(selectedTour.joinerPrice)
+                          : "—"}
+                      </p>
+
+                      <p>
+                        <strong>Max Slots:</strong>{" "}
+                        {selectedTour?.joinerMaxSlots || "—"}
+                      </p>
+
+                      <p>
+                        <strong>Private Price:</strong>{" "}
+                        {selectedTour?.privateBookingPrice
+                          ? formatPeso(selectedTour.privateBookingPrice)
+                          : "—"}
+                      </p>
+                    </CardBody>
+                  </Card>
+                </Col>
+              </Row>
+            )
+          )}
+        </ModalBody>
+      </Modal>
     </Container>
   );
 }

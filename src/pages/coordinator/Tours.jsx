@@ -569,6 +569,9 @@ export default function CoordinatorTours() {
                 <option>Scuba Diving</option>
                 <option>Camping</option>
                 <option>Hiking</option>
+                <option>Nature & Cultural </option>
+                <option>Adventure & Extreme </option>
+                <option>Beach & Relaxation </option>
               </Input>
             </FormGroup>
 
