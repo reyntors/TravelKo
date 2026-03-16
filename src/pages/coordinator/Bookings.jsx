@@ -44,6 +44,11 @@ export default function Bookings() {
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [selectedTour, setSelectedTour] = useState(null);
   const [viewLoading, setViewLoading] = useState(false);
+  const [rejectModalOpen, setRejectModalOpen] = useState(false);
+  const [rejectBooking, setRejectBooking] = useState(null);
+  const [rejectRemarks, setRejectRemarks] = useState("");
+  const [rejectLoading, setRejectLoading] = useState(false);
+  const [rejectError, setRejectError] = useState("");
   const fetchJoinerDetails = async (tourId) => {
     try {
       const token = localStorage.getItem("auth_token");
@@ -116,6 +121,26 @@ export default function Bookings() {
     setOpenTour(null);
   }, [activeTab]);
 
+  const handleView = async (b) => {
+    try {
+      setViewLoading(true);
+      setViewModalOpen(true);
+      setSelectedBooking(b);
+
+      const token = localStorage.getItem("auth_token");
+
+      const res = await api.get(`/tours/${b.tourId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      setSelectedTour(res.data);
+    } catch (err) {
+      console.error("Failed to fetch tour", err);
+    } finally {
+      setViewLoading(false);
+    }
+  };
+
   useEffect(() => {
     const fetchBookings = async () => {
       try {
@@ -156,7 +181,7 @@ export default function Bookings() {
             mode: "private",
             id: b.id,
             tourId: b.tour?.id,
-            tourTitle: b.tour?.title || "—",
+            tourTitle: selectedTour?.title,
             customer: b.booker?.fullName ?? "—",
             email: b.booker?.email ?? "—",
             phone: b.booker?.phoneNumber ?? "—",
@@ -168,14 +193,15 @@ export default function Bookings() {
                 }`
               : "—",
             type: b.bookingType,
-            amount: Number(b.amountPaid || 0),
-            status: b.status || "request",
+            amount: Number(b.amount),
+            status: b.status,
             displayStatus: b.status === "approved" ? "ongoing" : b.status,
+            remarks: b.remarks,
+            specialRequests: b.specialRequests,
           }));
         }
-
-        setBookings(normalized);
         console.log(normalized);
+        setBookings(normalized);
       } catch (err) {
         console.error(err);
         alert(err.response?.data?.message || "Failed to load bookings");
@@ -226,33 +252,45 @@ export default function Bookings() {
     }
   };
 
-  const rejectPrivate = async (id) => {
+  const rejectPrivate = async () => {
+    if (!rejectRemarks || rejectRemarks.trim().length < 10) {
+      setRejectError("Remarks must be at least 10 characters long.");
+      return;
+    }
+
     try {
+      setRejectLoading(true);
+      setRejectError("");
+
       const token = localStorage.getItem("auth_token");
 
-      const remarks = prompt("Enter rejection remarks:");
-      if (!remarks) return;
-      if (remarks.trim().length < 10) {
-        alert("Remarks must be at least 10 characters long.");
-        return;
-      }
-
       await api.put(
-        `/booking/private/reject/${id}`,
+        `/booking/private/reject/${rejectBooking.id}`,
         {
-          remarks: remarks,
+          remarks: rejectRemarks.trim(),
         },
         {
           headers: { Authorization: `Bearer ${token}` },
         },
       );
 
-      // update state immediately
+      // ✅ Update state instantly
       setBookings((prev) =>
-        prev.map((b) => (b.id === id ? { ...b, status: "cancelled" } : b)),
+        prev.map((b) =>
+          b.id === rejectBooking.id ? { ...b, status: "cancelled" } : b,
+        ),
       );
+
+      // reset modal
+      setRejectModalOpen(false);
+      setRejectBooking(null);
+      setRejectRemarks("");
     } catch (err) {
-      console.error("FULL ERROR:", err.response?.data);
+      setRejectError(
+        err.response?.data?.message || "Failed to reject booking.",
+      );
+    } finally {
+      setRejectLoading(false);
     }
   };
 
@@ -275,26 +313,6 @@ export default function Bookings() {
       );
     } catch (err) {
       console.error(err);
-    }
-  };
-
-  const handleView = async (b) => {
-    try {
-      setViewLoading(true);
-      setViewModalOpen(true);
-      setSelectedBooking(b);
-
-      const token = localStorage.getItem("auth_token");
-
-      const res = await api.get(`/tours/${b.tourId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      setSelectedTour(res.data);
-    } catch (err) {
-      console.error("Failed to fetch tour", err);
-    } finally {
-      setViewLoading(false);
     }
   };
 
@@ -479,7 +497,12 @@ export default function Bookings() {
                                 <Button
                                   size="sm"
                                   color="danger"
-                                  onClick={() => rejectPrivate(b.id)}
+                                  onClick={() => {
+                                    setRejectBooking(b);
+                                    setRejectRemarks("");
+                                    setRejectError("");
+                                    setRejectModalOpen(true);
+                                  }}
                                 >
                                   <FaTimes />
                                 </Button>
@@ -732,6 +755,13 @@ export default function Bookings() {
                   <p>
                     <strong>Booking Type:</strong> {selectedBooking.type}
                   </p>
+                  <p>
+                    <strong>Special Request:</strong>{" "}
+                    {selectedBooking.specialRequests}
+                  </p>
+                  <p>
+                    <strong>Remarks:</strong> {selectedBooking.remarks}
+                  </p>
 
                   <p>
                     <strong>Status:</strong>{" "}
@@ -835,6 +865,60 @@ export default function Bookings() {
                   </>
                 ) : (
                   "Confirm Approval"
+                )}
+              </Button>
+            </>
+          )}
+        </ModalBody>
+      </Modal>
+      {/* ===== REJECT PRIVATE MODAL ===== */}
+      <Modal
+        isOpen={rejectModalOpen}
+        toggle={() => setRejectModalOpen(false)}
+        centered
+      >
+        <ModalHeader toggle={() => setRejectModalOpen(false)}>
+          Reject Booking
+        </ModalHeader>
+
+        <ModalBody>
+          {rejectBooking && (
+            <>
+              <div className="mb-3">
+                <strong>Tour:</strong> {rejectBooking.tourTitle}
+              </div>
+
+              <div className="mb-3">
+                <strong>Customer:</strong> {rejectBooking.customer}
+              </div>
+
+              <label className="fw-semibold mb-1">Reason for Rejection</label>
+
+              <Input
+                type="textarea"
+                rows="4"
+                placeholder="Please provide a clear reason for rejection..."
+                value={rejectRemarks}
+                onChange={(e) => setRejectRemarks(e.target.value)}
+              />
+
+              {rejectError && (
+                <div className="text-danger mt-2">{rejectError}</div>
+              )}
+
+              <Button
+                color="danger"
+                className="w-100 mt-3"
+                onClick={rejectPrivate}
+                disabled={rejectLoading}
+              >
+                {rejectLoading ? (
+                  <>
+                    <Spinner size="sm" className="me-2" />
+                    Processing...
+                  </>
+                ) : (
+                  "Confirm Rejection"
                 )}
               </Button>
             </>
