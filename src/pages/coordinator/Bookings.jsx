@@ -25,7 +25,11 @@ export default function Bookings() {
   const border = "#E5E7EB";
   const muted = "#6B7280";
   const text = "#111827";
-
+  const [approveModalOpen, setApproveModalOpen] = useState(false);
+  const [approvePrice, setApprovePrice] = useState("");
+  const [approveBooking, setApproveBooking] = useState(null);
+  const [approveLoading, setApproveLoading] = useState(false);
+  const [approveRemarks, setApproveRemarks] = useState("");
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [typeFilter, setTypeFilter] = useState("all"); // all | private | joiner
@@ -171,6 +175,7 @@ export default function Bookings() {
         }
 
         setBookings(normalized);
+        console.log(normalized);
       } catch (err) {
         console.error(err);
         alert(err.response?.data?.message || "Failed to load bookings");
@@ -307,29 +312,46 @@ export default function Bookings() {
     );
   }
 
-  const approvePrivate = async (id, price, remarks = "") => {
+  const approvePrivate = async () => {
+    if (!approvePrice || isNaN(approvePrice)) return;
+
     try {
+      setApproveLoading(true);
+
       const token = localStorage.getItem("auth_token");
 
       await api.put(
-        `/booking/private/approve/${id}`,
+        `/booking/private/approve/${approveBooking.id}`,
         {
-          price: Number(price),
-          remarks: remarks,
+          price: Number(approvePrice),
+          remarks: approveRemarks || "", // ✅ required by backend
         },
         {
           headers: { Authorization: `Bearer ${token}` },
         },
       );
 
-      // 🔥 update state immediately
+      // ✅ Update state instantly
       setBookings((prev) =>
         prev.map((b) =>
-          b.id === id ? { ...b, status: "ongoing", amount: Number(price) } : b,
+          b.id === approveBooking.id
+            ? {
+                ...b,
+                status: "approved",
+                displayStatus: "ongoing",
+                amount: Number(approvePrice),
+              }
+            : b,
         ),
       );
+
+      setApproveModalOpen(false);
+      setApproveBooking(null);
+      setApproveRemarks("");
     } catch (err) {
-      console.error(err);
+      console.error("APPROVE ERROR:", err.response?.data);
+    } finally {
+      setApproveLoading(false);
     }
   };
 
@@ -446,12 +468,9 @@ export default function Bookings() {
                                   size="sm"
                                   color="success"
                                   onClick={() => {
-                                    const price = prompt("Enter price:");
-                                    if (!price) return;
-
-                                    const remarks =
-                                      prompt("Remarks (optional):") || "";
-                                    approvePrivate(b.id, price, remarks);
+                                    setApproveBooking(b);
+                                    setApprovePrice("");
+                                    setApproveModalOpen(true);
                                   }}
                                 >
                                   <FaCheck />
@@ -628,11 +647,11 @@ export default function Bookings() {
                                 <td>{client.fullName}</td>
                                 <td>{client.email}</td>
                                 <td>{client.phoneNumber}</td>
-                                <td>
+                                {/* <td>
                                   {client.isVerified
                                     ? "Verified"
                                     : "Not Verified"}
-                                </td>
+                                </td> */}
                               </tr>
                             ))}
                           </tbody>
@@ -760,6 +779,65 @@ export default function Bookings() {
                 </Col>
               </Row>
             )
+          )}
+        </ModalBody>
+      </Modal>
+
+      {/* ===== APPROVE PRIVATE MODAL ===== */}
+      <Modal
+        isOpen={approveModalOpen}
+        toggle={() => setApproveModalOpen(false)}
+        centered
+      >
+        <ModalHeader toggle={() => setApproveModalOpen(false)}>
+          Approve Booking
+        </ModalHeader>
+
+        <ModalBody>
+          {approveBooking && (
+            <>
+              <div className="mb-3">
+                <strong>Tour:</strong> {selectedTour?.title}
+              </div>
+
+              <div className="mb-3">
+                <strong>Customer:</strong> {approveBooking.customer}
+              </div>
+
+              <label className="fw-semibold mb-1">Enter Price</label>
+              <Input
+                type="number"
+                placeholder="Enter approved price"
+                value={approvePrice}
+                onChange={(e) => setApprovePrice(e.target.value)}
+              />
+              <label className="fw-semibold mt-3 mb-1">
+                Remarks (Optional)
+              </label>
+              <Input
+                type="textarea"
+                rows="3"
+                placeholder="Enter remarks..."
+                value={approveRemarks}
+                onChange={(e) => setApproveRemarks(e.target.value)}
+              />
+
+              <Button
+                color="success"
+                className="w-100 mt-3"
+                onClick={approvePrivate}
+                disabled={approveLoading}
+              >
+                {approveLoading ? (
+                  <>
+                    <Spinner size="sm" className="me-2" />
+                    Processing...
+                  </>
+                ) : (
+                  "Confirm Approval"
+                )}
+              </Button>
+            </>
           )}
         </ModalBody>
       </Modal>

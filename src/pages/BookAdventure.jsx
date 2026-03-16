@@ -138,6 +138,8 @@ function BookAdventure() {
 
         const matchedTour = allTours.find((t) => t.id === tourId);
 
+        console.log(matchedTour);
+
         if (!matchedTour) {
           alert("Tour not found.");
           navigate("/tours");
@@ -208,6 +210,12 @@ function BookAdventure() {
 
       paymentMethod: payment,
       amount: String(totalAmount),
+
+      // ✅ Only include privateBookingPrice if SOLO
+      ...(bookingType === "solo" && {
+        privateBookingPrice: Number(tour?.privateBookingPrice || 0),
+      }),
+
       specialRequests: form.specialRequests,
       fullName: form.fullName,
       email: form.email,

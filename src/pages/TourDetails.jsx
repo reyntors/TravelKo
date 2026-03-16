@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, NavLink } from "react-router-dom";
 import axios from "axios";
 import {
   Container,
@@ -151,8 +151,14 @@ export default function AdventureDetails() {
       setShowReviewModal(false);
       setReviewForm({ fullName: "", rating: 5, content: "" });
     } catch (err) {
-      toast.error("Failed to submit review");
-      console.error(err);
+      const message =
+        err.response?.data?.message ||
+        err.response?.data?.error ||
+        err.message ||
+        "Something went wrong";
+
+      toast.error(message);
+      console.error("API ERROR:", err.response?.data || err);
     }
   };
 
@@ -175,6 +181,8 @@ export default function AdventureDetails() {
 
         // 4️⃣ extract coordinator phone
         const coordinator = matchedTour?.createdBy || null;
+
+        console.log(tourDetails);
 
         setTour({
           ...tourDetails,
@@ -411,6 +419,17 @@ export default function AdventureDetails() {
           </Col>
         </Row>
 
+        <Row className="mb-4">
+          <Col>
+            <h4 className="fw-bold">Meetup Locations</h4>
+            <ul>
+              {tour.meetupLocations?.map((i, idx) => (
+                <li key={idx}>{i}</li>
+              ))}
+            </ul>
+          </Col>
+        </Row>
+
         {/* ================= COORDINATOR ================= */}
         <Row className="mb-4">
           <Col>
@@ -425,8 +444,16 @@ export default function AdventureDetails() {
               <FaPhone className="me-2" />
               {tour.coordinator?.phoneNumber || "Phone not available"}
             </p> */}
-
-            <p className="text-success">Book a Private Tour »</p>
+            <NavLink
+              to="/book"
+              state={{
+                tourId: tour.id,
+                bookingMode: "private",
+              }}
+              style={{ textDecoration: "none" }}
+            >
+              <p className="text-success">Book a Private Tour »</p>
+            </NavLink>
           </Col>
         </Row>
 
