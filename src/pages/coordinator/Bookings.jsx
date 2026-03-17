@@ -200,7 +200,7 @@ export default function Bookings() {
             specialRequests: b.specialRequests,
           }));
         }
-        console.log(normalized);
+
         setBookings(normalized);
       } catch (err) {
         console.error(err);
@@ -747,7 +747,9 @@ export default function Bookings() {
                   <p>
                     <strong>Phone:</strong> {selectedBooking.phone}
                   </p>
-
+                  <p>
+                    <strong>Address:</strong> {selectedBooking.address}
+                  </p>
                   <p>
                     <strong>Tour Date:</strong> {selectedBooking.tourDate}
                   </p>

@@ -213,6 +213,7 @@ function BookAdventure() {
       fullName: form.fullName,
       email: form.email,
       phoneNumber: form.phoneNumber,
+      // address: form.address,
     };
 
     try {
@@ -301,6 +302,15 @@ function BookAdventure() {
                     value={form.phoneNumber}
                     onChange={onChange("phoneNumber")}
                     placeholder="Enter your number"
+                  />
+                </FormGroup>
+
+                <FormGroup>
+                  <Label>Address</Label>
+                  <Input
+                    value={form.address}
+                    onChange={onChange("address")}
+                    placeholder="Enter your address"
                   />
                 </FormGroup>
               </CardBody>

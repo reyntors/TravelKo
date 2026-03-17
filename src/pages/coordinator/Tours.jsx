@@ -731,16 +731,15 @@ export default function CoordinatorTours() {
               </Col>
             </Row>
 
-            <FormGroup>
+            {/* <FormGroup>
               <Label>Private Booking Price</Label>
               <Input
                 type="number"
                 value={form.privateBookingPrice}
                 onChange={onChange("privateBookingPrice")}
                 placeholder="Price for private booking"
-                required
               />
-            </FormGroup>
+            </FormGroup> */}
 
             {/* IMAGE UPLOAD */}
             <FormGroup>
