@@ -195,7 +195,7 @@ export default function Bookings() {
             type: b.bookingType,
             amount: Number(b.amount),
             status: b.status,
-            displayStatus: b.status === "approved" ? "ongoing" : b.status,
+            displayStatus: b.status,
             remarks: b.remarks,
             specialRequests: b.specialRequests,
           }));
@@ -800,12 +800,12 @@ export default function Bookings() {
                         {selectedTour?.joinerMaxSlots || "—"}
                       </p>
 
-                      <p>
+                      {/* <p>
                         <strong>Private Price:</strong>{" "}
                         {selectedTour?.privateBookingPrice
                           ? formatPeso(selectedTour.privateBookingPrice)
                           : "—"}
-                      </p>
+                      </p> */}
                     </CardBody>
                   </Card>
                 </Col>
