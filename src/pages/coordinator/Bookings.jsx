@@ -372,6 +372,7 @@ export default function Bookings() {
       setApproveLoading(false);
     }
   };
+  console.log(joinerDetails);
 
   return (
     <Container fluid style={{ fontFamily: "Poppins" }}>
@@ -417,6 +418,11 @@ export default function Bookings() {
                   <option value="request">Request</option>
                   <option value="approved">Approved</option>
                   <option value="cancelled">Cancelled</option>
+                  <option value="cancelled">Refunded</option>
+                  <option value="cancelled">Paid</option>
+                  <option value="cancelled">Completed</option>
+                  <option value="cancelled">Rejected</option>
+                  <option value="cancelled">Ongoing</option>
                 </Input>
               </Col>
             )}
@@ -670,11 +676,7 @@ export default function Bookings() {
                                 <td>{client.fullName}</td>
                                 <td>{client.email}</td>
                                 <td>{client.phoneNumber}</td>
-                                {/* <td>
-                                  {client.isVerified
-                                    ? "Verified"
-                                    : "Not Verified"}
-                                </td> */}
+                                <td>{client.displayStatus}</td>
                               </tr>
                             ))}
                           </tbody>
