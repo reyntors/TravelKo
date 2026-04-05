@@ -94,6 +94,13 @@ export default function CoordinatorTours() {
 
   const [dateRange, setDateRange] = useState([null, null]);
   const [startDate, endDate] = dateRange;
+  const [expandedCards, setExpandedCards] = useState({});
+  const toggleExpand = (id) => {
+    setExpandedCards((prev) => ({
+      ...prev,
+      [id]: !prev[id],
+    }));
+  };
 
   const [form, setForm] = useState({
     title: "",
@@ -190,7 +197,7 @@ export default function CoordinatorTours() {
       thingsToBring: "",
       joinerPrice: "",
       joinerMaxSlots: "",
-      privateBookingPrice: "",
+      // privateBookingPrice: "",
       pictures: [],
     });
   };
@@ -299,7 +306,7 @@ export default function CoordinatorTours() {
 
     fd.append("joinerPrice", form.joinerPrice);
     fd.append("joinerMaxSlots", form.joinerMaxSlots);
-    fd.append("privateBookingPrice", form.privateBookingPrice);
+    // fd.append("privateBookingPrice", form.privateBookingPrice);
 
     form.pictures.forEach((file) => fd.append("pictures", file));
 
@@ -421,6 +428,45 @@ export default function CoordinatorTours() {
     );
   };
 
+  const getDaysBetween = (start, end) => {
+    if (!start || !end) return 0;
+
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+
+    const diffTime = endDate - startDate;
+
+    // +1 because inclusive (Day 1 to Day N)
+    return Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
+  };
+
+  useEffect(() => {
+    const days = getDaysBetween(startDate, endDate);
+
+    if (days <= 0) {
+      setForm((prev) => ({
+        ...prev,
+        itinerary: [],
+      }));
+      return;
+    }
+
+    setForm((prev) => {
+      const newItinerary = [...prev.itinerary];
+
+      // Add missing days
+      while (newItinerary.length < days) {
+        newItinerary.push([""]);
+      }
+
+      // Trim extra days
+      return {
+        ...prev,
+        itinerary: newItinerary.slice(0, days),
+      };
+    });
+  }, [startDate, endDate]);
+
   /* ================= UI ================= */
   return (
     <Container fluid style={{ fontFamily: "Poppins" }}>
@@ -448,9 +494,22 @@ export default function CoordinatorTours() {
           const dates = parseAvailableDates(t.availableDates);
 
           return (
-            <Col md="4" key={t._id || t.id}>
-              <Card style={{ border: `1px solid ${border}`, borderRadius: 16 }}>
-                <CardBody style={{ padding: 18 }}>
+            <Col md="4" className="d-flex">
+              <Card
+                style={{
+                  border: `1px solid ${border}`,
+                  borderRadius: 16,
+                  height: "100%", // 🔥 important
+                }}
+              >
+                <CardBody
+                  style={{
+                    padding: 18,
+                    display: "flex",
+                    flexDirection: "column",
+                    justifyContent: "space-between",
+                  }}
+                >
                   <div className="d-flex justify-content-between">
                     <div>
                       <h5 style={{ fontWeight: 900 }}>{t.title}</h5>
@@ -517,7 +576,37 @@ export default function CoordinatorTours() {
                     <div style={{ color: muted, fontWeight: 700 }}>
                       Details:
                     </div>
-                    <div>{t.details}</div>
+                    <div>
+                      <div
+                        style={{
+                          display: "-webkit-box",
+                          WebkitLineClamp: expandedCards[t.id || t._id]
+                            ? "unset"
+                            : 2,
+                          WebkitBoxOrient: "vertical",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                        }}
+                      >
+                        {t.details}
+                      </div>
+
+                      {t.details && t.details.length > 80 && (
+                        <span
+                          style={{
+                            color: "#16A34A",
+                            fontWeight: 600,
+                            cursor: "pointer",
+                            fontSize: 12,
+                          }}
+                          onClick={() => toggleExpand(t.id || t._id)}
+                        >
+                          {expandedCards[t.id || t._id]
+                            ? "See less"
+                            : "See more"}
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   <div

@@ -329,7 +329,7 @@ export default function AdminBookingsManagement() {
                         <strong>Phone:</strong> {selectedBooking.phone}
                       </p>
                       {/* PRIVATE ACTIONS */}
-                      {selectedBooking.status === "rejected" && (
+                      {/* {selectedBooking.status === "rejected" && (
                         <Button
                           color="warning"
                           className="me-2"
@@ -339,7 +339,7 @@ export default function AdminBookingsManagement() {
                         >
                           Mark as Refunded
                         </Button>
-                      )}
+                      )} */}
 
                       {selectedBooking.status === "approved" && (
                         <Button

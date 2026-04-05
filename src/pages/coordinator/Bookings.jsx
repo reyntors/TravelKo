@@ -49,6 +49,10 @@ export default function Bookings() {
   const [rejectRemarks, setRejectRemarks] = useState("");
   const [rejectLoading, setRejectLoading] = useState(false);
   const [rejectError, setRejectError] = useState("");
+  const [clientsModalOpen, setClientsModalOpen] = useState(false);
+  const [selectedTourClients, setSelectedTourClients] = useState(null);
+  const [selectedClient, setSelectedClient] = useState(null);
+  const [clientDetailModal, setClientDetailModal] = useState(false);
   const fetchJoinerDetails = async (tourId) => {
     try {
       const token = localStorage.getItem("auth_token");
@@ -175,6 +179,7 @@ export default function Bookings() {
             joinerPrice: tour.joinerPrice || 0,
             joinerBookedSlots: tour.joinerBookedSlots || 0,
             joinerMaxSlots: tour.joinerMaxSlots || 0,
+            bookings: tour.bookings || [], // ✅ VERY IMPORTANT
           }));
         } else {
           normalized = data.map((b) => ({
@@ -212,6 +217,16 @@ export default function Bookings() {
 
     fetchBookings();
   }, [activeTab]);
+
+  useEffect(() => {
+    if (activeTab === "joiner" && bookings.length > 0) {
+      bookings.forEach((tour) => {
+        if (!joinerCounts[tour.tourId]) {
+          fetchJoinerCount(tour.tourId);
+        }
+      });
+    }
+  }, [activeTab, bookings]);
 
   const formatPeso = (n) =>
     new Intl.NumberFormat("en-PH", {
@@ -299,20 +314,29 @@ export default function Bookings() {
       const token = localStorage.getItem("auth_token");
 
       await api.patch(
-        `${import.meta.env.VITE_API_BASE_URL}booking/cancel/${tourId}/joiners`,
+        `/booking/cancel/${tourId}/joiners`,
         {},
         {
           headers: { Authorization: `Bearer ${token}` },
         },
       );
 
+      // ✅ update nested bookings
       setBookings((prev) =>
-        prev.map((b) =>
-          b.tourId === tourId ? { ...b, status: "cancelled" } : b,
+        prev.map((tour) =>
+          tour.tourId === tourId
+            ? {
+                ...tour,
+                bookings: tour.bookings.map((b) => ({
+                  ...b,
+                  status: "cancelled",
+                })),
+              }
+            : tour,
         ),
       );
     } catch (err) {
-      console.error(err);
+      console.error("Cancel Error:", err.response?.data || err.message);
     }
   };
 
@@ -372,7 +396,6 @@ export default function Bookings() {
       setApproveLoading(false);
     }
   };
-  console.log(joinerDetails);
 
   return (
     <Container fluid style={{ fontFamily: "Poppins" }}>
@@ -613,107 +636,185 @@ export default function Bookings() {
 
       {/* ================= JOINER / GROUP VIEW ================= */}
       {activeTab === "joiner" && (
-        <>
-          {bookings
-            .filter((b) => b.mode === "joiner")
-            .map((tour) => {
-              if (!joinerCounts[tour.tourId]) {
-                fetchJoinerCount(tour.tourId);
-              }
+        <Card style={headerCardStyle}>
+          <CardBody style={{ padding: 0 }}>
+            <Table hover responsive className="mb-0 align-middle">
+              <thead className="table-light">
+                <tr>
+                  <th>Tour</th>
+                  <th>Category</th>
+                  <th className="text-center">Booked</th>
+                  <th className="text-center">Max Slots</th>
+                  <th className="text-end">Actions</th>
+                </tr>
+              </thead>
 
-              return (
-                <div key={tour.tourId}>
-                  <Card className="mb-3">
-                    <CardBody>
-                      <h5 className="fw-bold">{tour.tourTitle}</h5>
+              <tbody>
+                {dataToRender.map((tour) => (
+                  <tr key={tour.tourId}>
+                    <td>
+                      <strong>{tour.tourTitle}</strong>
+                    </td>
 
-                      <div>
-                        Joiners Booked:{" "}
-                        <strong>{joinerCounts[tour.tourId] ?? 0}</strong>
+                    <td>{tour.category}</td>
+
+                    <td className="text-center">
+                      {joinerCounts[tour.tourId] ?? 0}
+                    </td>
+
+                    <td className="text-center">{tour.joinerMaxSlots}</td>
+
+                    <td className="text-end">
+                      <div className="d-inline-flex gap-2">
+                        <Button
+                          size="sm"
+                          color="primary"
+                          onClick={() => {
+                            setSelectedTourClients(tour);
+                            setClientsModalOpen(true);
+                          }}
+                        >
+                          View Clients
+                        </Button>
+
+                        <Button
+                          size="sm"
+                          color="danger"
+                          disabled={!joinerCounts[tour.tourId]}
+                          onClick={() => cancelJoinerBookings(tour.tourId)}
+                        >
+                          Cancel All Joiners
+                        </Button>
                       </div>
+                    </td>
+                  </tr>
+                ))}
 
-                      <div>Max Slots: {tour.joinerMaxSlots}</div>
+                {dataToRender.length === 0 && (
+                  <tr>
+                    <td colSpan="5" className="text-center text-muted p-4">
+                      No joiner tours found
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </Table>
+          </CardBody>
+        </Card>
+      )}
+      <Modal
+        isOpen={clientsModalOpen}
+        toggle={() => setClientsModalOpen(false)}
+        size="lg"
+        centered
+      >
+        <ModalHeader toggle={() => setClientsModalOpen(false)}>
+          Clients - {selectedTourClients?.tourTitle}
+        </ModalHeader>
 
+        <ModalBody>
+          {!selectedTourClients?.bookings ? (
+            <div className="text-center text-muted">No clients found</div>
+          ) : (
+            <Table responsive hover>
+              <thead className="table-light">
+                <tr>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Phone</th>
+                  <th>Slots</th>
+                  <th>Status</th>
+                  <th className="text-end">Action</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {selectedTourClients.bookings.map((b) => (
+                  <tr key={b.id}>
+                    <td>{b.booker?.fullName}</td>
+                    <td>{b.booker?.email}</td>
+                    <td>{b.booker?.phoneNumber}</td>
+                    <td>{b.bookingIndividuals}</td>
+                    <td>
+                      <span style={statusPillStyle(b.status)}>{b.status}</span>
+                    </td>
+
+                    <td className="text-end">
                       <Button
                         size="sm"
-                        color="primary"
-                        className="mt-2 me-2"
+                        outline
                         onClick={() => {
-                          setOpenTour(tour.tourId);
-                          fetchJoinerDetails(tour.tourId);
+                          setSelectedClient(b);
+                          setClientDetailModal(true);
                         }}
                       >
-                        View Clients
+                        <FaEye /> View
                       </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
+          )}
+        </ModalBody>
+      </Modal>
+      <Modal
+        isOpen={clientDetailModal}
+        toggle={() => setClientDetailModal(false)}
+        centered
+      >
+        <ModalHeader toggle={() => setClientDetailModal(false)}>
+          Client Details
+        </ModalHeader>
 
-                      <Button
-                        size="sm"
-                        color="danger"
-                        onClick={() => cancelJoinerBookings(tour.tourId)}
-                      >
-                        Cancel All Joiners
-                      </Button>
-                    </CardBody>
-                  </Card>
+        <ModalBody>
+          {selectedClient && (
+            <>
+              <p>
+                <strong>Name:</strong> {selectedClient.booker?.fullName}
+              </p>
+              <p>
+                <strong>Email:</strong> {selectedClient.booker?.email}
+              </p>
+              <p>
+                <strong>Phone:</strong> {selectedClient.booker?.phoneNumber}
+              </p>
 
-                  {/* 👇 EXPANDED DETAILS INSIDE MAP */}
-                  {openTour === tour.tourId && joinerDetails[tour.tourId] && (
-                    <>
-                      {/* DESKTOP */}
-                      <div className="d-none d-md-block mt-3">
-                        <Table hover responsive className="align-middle">
-                          <thead className="table-light">
-                            <tr>
-                              <th>Client</th>
-                              <th>Email</th>
-                              <th>Phone</th>
-                              <th>Status</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {joinerDetails[tour.tourId].map((client) => (
-                              <tr key={client.id}>
-                                <td>{client.fullName}</td>
-                                <td>{client.email}</td>
-                                <td>{client.phoneNumber}</td>
-                                <td>{client.displayStatus}</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </Table>
-                      </div>
+              <p>
+                <strong>Slots:</strong> {selectedClient.bookingIndividuals}
+              </p>
 
-                      {/* MOBILE */}
-                      <div className="d-md-none mt-3">
-                        {joinerDetails[tour.tourId].map((client) => (
-                          <Card key={client.id} className="mb-2">
-                            <CardBody>
-                              <div className="fw-semibold">
-                                {client.fullName}
-                              </div>
-                              <div className="text-muted small">
-                                {client.email}
-                              </div>
-                              <div className="text-muted small">
-                                {client.phoneNumber}
-                              </div>
-                              <div>
-                                Status:{" "}
-                                {client.isVerified
-                                  ? "Verified"
-                                  : "Not Verified"}
-                              </div>
-                            </CardBody>
-                          </Card>
-                        ))}
-                      </div>
-                    </>
-                  )}
-                </div>
-              );
-            })}
-        </>
-      )}
+              <p>
+                <strong>Date:</strong>{" "}
+                {selectedClient.bookingDateSelected
+                  ?.map((d) => new Date(d).toLocaleDateString())
+                  .join(", ")}
+              </p>
+
+              <p>
+                <strong>Payment:</strong> {selectedClient.paymentMethod}
+              </p>
+
+              <p>
+                <strong>Special Request:</strong>{" "}
+                {selectedClient.specialRequests || "—"}
+              </p>
+
+              <p>
+                <strong>Remarks:</strong> {selectedClient.remarks || "—"}
+              </p>
+
+              <p>
+                <strong>Status:</strong>{" "}
+                <span style={statusPillStyle(selectedClient.status)}>
+                  {selectedClient.status}
+                </span>
+              </p>
+            </>
+          )}
+        </ModalBody>
+      </Modal>
+
       {/* ===== VIEW BOOKING MODAL ===== */}
       <Modal
         isOpen={viewModalOpen}

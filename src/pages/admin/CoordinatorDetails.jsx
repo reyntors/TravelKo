@@ -127,16 +127,30 @@ export default function AdminCoordinatorDetails() {
           <p className="text-muted">No tours found.</p>
         ) : (
           <>
-            {toursWithRevenue.map((tour) => (
-              <div
-                key={tour.id}
-                className="d-flex justify-content-between border-bottom py-2"
-              >
-                <div>{tour.title}</div>
-                <div>Bookings: {tour.bookings}</div>
-                <div>{formatPeso(tour.revenue)}</div>
-              </div>
-            ))}
+            <div className="table-responsive">
+              <table className="table align-middle">
+                <thead className="table-light">
+                  <tr>
+                    <th>Tour Title</th>
+                    <th className="text-center">Bookings</th>
+                    <th className="text-end">Revenue</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {toursWithRevenue.map((tour) => (
+                    <tr key={tour.id}>
+                      <td>{tour.title}</td>
+                      <td className="text-center">{tour.bookings}</td>
+                      <td className="text-end">{formatPeso(tour.revenue)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="mt-3 fw-bold text-end">
+              Total Revenue: {formatPeso(totalRevenue)}
+            </div>
 
             <div className="mt-3 fw-bold">
               Total Revenue: {formatPeso(totalRevenue)}
