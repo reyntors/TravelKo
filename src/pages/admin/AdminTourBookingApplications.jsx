@@ -19,7 +19,7 @@ const computeJoinerTourStatus = (tour) => {
 
   if (statuses.every((s) => s === "cancelled")) return "cancelled";
   if (statuses.every((s) => s === "refunded")) return "refunded";
-  if (statuses.some((s) => s === "refunded")) return "pending refund";
+  if (statuses.some((s) => s === "refunded")) return "refunded";
   if (statuses.every((s) => s === "completed")) return "completed";
   if (statuses.every((s) => s === "paid")) return "paid";
 
@@ -147,6 +147,47 @@ export default function AdminBookingsManagement() {
     });
   };
 
+  const updateSingleJoinerStatus = async (bookingId, status) => {
+    try {
+      await api.patch(`booking/update-status/${bookingId}`, {
+        status: "refunded",
+      });
+
+      // update UI instantly
+      setSelectedBooking((prev) => {
+        if (!prev) return prev;
+
+        return {
+          ...prev,
+          raw: {
+            ...prev.raw,
+            bookings: prev.raw.bookings.map((j) =>
+              j.id === bookingId ? { ...j, status } : j,
+            ),
+          },
+        };
+      });
+
+      // optional: update main table
+      setBookings((prev) =>
+        prev.map((b) =>
+          b.id === selectedBooking.id
+            ? {
+                ...b,
+                status: computeJoinerTourStatus({
+                  bookings: b.raw.bookings.map((j) =>
+                    j.id === bookingId ? { ...j, status } : j,
+                  ),
+                }),
+              }
+            : b,
+        ),
+      );
+    } catch (err) {
+      console.error(err.response?.data);
+    }
+  };
+
   const badgeColor = (status) => {
     switch (status) {
       case "request":
@@ -165,7 +206,7 @@ export default function AdminBookingsManagement() {
       case "refunded":
         return "warning";
       default:
-        return "light";
+        return "secondary";
     }
   };
 
@@ -376,6 +417,7 @@ export default function AdminBookingsManagement() {
                             <th>Email</th>
                             <th>Phone</th>
                             <th>Status</th>
+                            <th>Actions</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -385,12 +427,40 @@ export default function AdminBookingsManagement() {
                               <td>{j.booker.email}</td>
                               <td>{j.booker.phoneNumber}</td>
                               <td>{j.status}</td>
+                              <td>
+                                {j.status === "cancelled" && (
+                                  <Button
+                                    size="sm"
+                                    color="warning"
+                                    onClick={() =>
+                                      updateSingleJoinerStatus(j.id, "refunded")
+                                    }
+                                  >
+                                    Refund
+                                  </Button>
+                                )}
+
+                                {/* {j.status === "refunded" && (
+                                  <Button
+                                    size="sm"
+                                    color="secondary"
+                                    onClick={() =>
+                                      updateSingleJoinerStatus(
+                                        j.id,
+                                        "cancelled",
+                                      )
+                                    }
+                                  >
+                                    Undo
+                                  </Button>
+                                )} */}
+                              </td>
                             </tr>
                           ))}
                         </tbody>
                       </Table>
                       {/* JOINER ACTIONS */}
-                      {selectedBooking.status === "cancelled" && (
+                      {/* {selectedBooking.status === "cancelled" && (
                         <Button
                           color="warning"
                           className="me-2"
@@ -400,7 +470,7 @@ export default function AdminBookingsManagement() {
                         >
                           Mark All Refunded
                         </Button>
-                      )}
+                      )} */}
 
                       {selectedBooking.status === "completed" && (
                         <Button
@@ -414,7 +484,7 @@ export default function AdminBookingsManagement() {
                         </Button>
                       )}
 
-                      {selectedBooking.status === "refunded" && (
+                      {/* {selectedBooking.status === "refunded" && (
                         <Button
                           color="secondary"
                           onClick={() =>
@@ -423,7 +493,7 @@ export default function AdminBookingsManagement() {
                         >
                           Undo
                         </Button>
-                      )}
+                      )} */}
                     </>
                   )}
                 </>
