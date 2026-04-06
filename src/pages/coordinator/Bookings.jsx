@@ -98,12 +98,15 @@ export default function Bookings() {
       );
     }
 
-    if (activeTab === "private") {
-      filtered = filtered.filter(
-        (b) => b.type === "private" && b.status === "approved",
-      );
-    }
+    // if (activeTab === "private") {
+    //   filtered = filtered.filter(
+    //     (b) => b.type === "private" && b.status === "approved",
+    //   );
+    // }
 
+    if (activeTab === "private") {
+      filtered = filtered.filter((b) => b.type === "private");
+    }
     if (activeTab === "joiner") {
       filtered = filtered.filter((b) => b.mode === "joiner");
     }
@@ -261,6 +264,8 @@ export default function Bookings() {
       case "request":
         return pill("#FEF3C7", "#B45309");
       case "cancelled":
+        return pill("#FEE2E2", "#B91C1C");
+      case "rejected":
         return pill("#FEE2E2", "#B91C1C");
       default:
         return pill("#E5E7EB", "#374151");
@@ -441,11 +446,11 @@ export default function Bookings() {
                   <option value="request">Request</option>
                   <option value="approved">Approved</option>
                   <option value="cancelled">Cancelled</option>
-                  <option value="cancelled">Refunded</option>
-                  <option value="cancelled">Paid</option>
-                  <option value="cancelled">Completed</option>
-                  <option value="cancelled">Rejected</option>
-                  <option value="cancelled">Ongoing</option>
+                  <option value="refunded">Refunded</option>
+                  <option value="paid">Paid</option>
+                  <option value="completed">Completed</option>
+                  <option value="rejected">Rejected</option>
+                  <option value="ongoing">Ongoing</option>
                 </Input>
               </Col>
             )}
@@ -539,7 +544,7 @@ export default function Bookings() {
                             )}
 
                             {/* PRIVATE TAB → CANCEL ONLY */}
-                            {activeTab === "private" &&
+                            {/* {activeTab === "private" &&
                               b.status !== "cancelled" && (
                                 <Button
                                   size="sm"
@@ -548,7 +553,7 @@ export default function Bookings() {
                                 >
                                   <FaTimes />
                                 </Button>
-                              )}
+                              )} */}
                           </div>
                         </td>
                       </tr>

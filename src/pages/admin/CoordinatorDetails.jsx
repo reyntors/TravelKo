@@ -32,6 +32,7 @@ export default function AdminCoordinatorDetails() {
         );
 
         const tourData = Array.isArray(tourRes.data) ? tourRes.data : [];
+        console.log(tourData);
 
         setTours(tourData);
       } catch (err) {
@@ -133,6 +134,8 @@ export default function AdminCoordinatorDetails() {
                   <tr>
                     <th>Tour Title</th>
                     <th className="text-center">Bookings</th>
+                    {/* <th className="text-center">Book Slots</th> */}
+                    <th className="text-center">Max Slots</th>
                     <th className="text-end">Revenue</th>
                   </tr>
                 </thead>
@@ -141,6 +144,8 @@ export default function AdminCoordinatorDetails() {
                     <tr key={tour.id}>
                       <td>{tour.title}</td>
                       <td className="text-center">{tour.bookings}</td>
+                      {/* <td className="text-center">{tour.joinerBookedSlots}</td> */}
+                      <td className="text-center">{tour.joinerMaxSlots}</td>
                       <td className="text-end">{formatPeso(tour.revenue)}</td>
                     </tr>
                   ))}
