@@ -19,6 +19,8 @@ import {
 } from "reactstrap";
 import { FaSearch, FaEye, FaCheck, FaTimes } from "react-icons/fa";
 import api from "@/services/api";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 export default function Bookings() {
   const green = "#16A34A";
@@ -180,7 +182,7 @@ export default function Bookings() {
             tourTitle: tour.title || "—",
             category: tour.category || "—",
             joinerPrice: tour.joinerPrice || 0,
-            joinerBookedSlots: tour.joinerBookedSlots || 0,
+            joinerBookedSlots: tour.joinerBookedSlots,
             joinerMaxSlots: tour.joinerMaxSlots || 0,
             bookings: tour.bookings || [], // ✅ VERY IMPORTANT
           }));
@@ -208,7 +210,7 @@ export default function Bookings() {
             specialRequests: b.specialRequests,
           }));
         }
-
+        console.log(normalized);
         setBookings(normalized);
       } catch (err) {
         console.error(err);
@@ -326,7 +328,7 @@ export default function Bookings() {
         },
       );
 
-      // ✅ update nested bookings
+      // ✅ Update bookings instantly
       setBookings((prev) =>
         prev.map((tour) =>
           tour.tourId === tourId
@@ -340,8 +342,17 @@ export default function Bookings() {
             : tour,
         ),
       );
+
+      // ✅ 🔥 Update count instantly (VERY IMPORTANT)
+      setJoinerCounts((prev) => ({
+        ...prev,
+        [tourId]: 0,
+      }));
+
+      toast.success("All joiners cancelled successfully!");
     } catch (err) {
       console.error("Cancel Error:", err.response?.data || err.message);
+      toast.error("Failed to cancel joiners.");
     }
   };
 
@@ -434,7 +445,7 @@ export default function Bookings() {
               </Input>
             </Col>
 
-            {activeTab !== "joiner" && (
+            {activeTab !== "joiner" && activeTab !== "approval" && (
               <Col md="3">
                 <label className="fw-semibold mb-1">Status</label>
                 <Input
@@ -459,7 +470,7 @@ export default function Bookings() {
               <label className="fw-semibold mb-1">Search</label>
               <Input
                 type="text"
-                placeholder="Search tour..."
+                placeholder="Search customer..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
@@ -664,7 +675,8 @@ export default function Bookings() {
                     <td>{tour.category}</td>
 
                     <td className="text-center">
-                      {joinerCounts[tour.tourId] ?? 0}
+                      {/* {joinerCounts[tour.tourId] ?? 0} */}
+                      {tour.joinerBookedSlots}
                     </td>
 
                     <td className="text-center">{tour.joinerMaxSlots}</td>
@@ -1035,6 +1047,7 @@ export default function Bookings() {
           )}
         </ModalBody>
       </Modal>
+      <ToastContainer position="top-right" autoClose={3000} />
     </Container>
   );
 }

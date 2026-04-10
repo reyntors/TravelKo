@@ -112,17 +112,46 @@ export default function AdminBookingsManagement() {
 
   // ================= JOINER MASS UPDATE =================
   const updateJoinerStatus = async (tourId, status) => {
-    console.log(tourId);
     try {
       await api.patch(`/booking/joiner/update-status-to-paid/${tourId}`, {
         status,
       });
 
+      // 🔥 UPDATE BOOKINGS LIST
       setBookings((prev) =>
-        prev.map((b) => (b.id === tourId ? { ...b, status } : b)),
+        prev.map((b) => {
+          if (b.id !== tourId) return b;
+
+          return {
+            ...b,
+            status,
+            raw: {
+              ...b.raw,
+              bookings: b.raw.bookings.map((j) => ({
+                ...j,
+                status, // ✅ update all joiners
+              })),
+            },
+          };
+        }),
       );
 
-      setSelectedBooking((prev) => (prev ? { ...prev, status } : prev));
+      // 🔥 UPDATE MODAL (selectedBooking)
+      setSelectedBooking((prev) => {
+        if (!prev || prev.id !== tourId) return prev;
+
+        return {
+          ...prev,
+          status,
+          raw: {
+            ...prev.raw,
+            bookings: prev.raw.bookings.map((j) => ({
+              ...j,
+              status,
+            })),
+          },
+        };
+      });
     } catch (err) {
       console.error(err.response?.data);
     }

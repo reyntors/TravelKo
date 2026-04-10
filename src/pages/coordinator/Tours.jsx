@@ -292,7 +292,7 @@ export default function CoordinatorTours() {
     );
     fd.append("packageInclusions", form.packageInclusions);
 
-    fd.append("itinerary", JSON.stringify(form.itinerary.map((day) => day[0])));
+    fd.append("itinerary", JSON.stringify(form.itinerary));
 
     fd.append(
       "thingsToBring",
@@ -494,7 +494,7 @@ export default function CoordinatorTours() {
           const dates = parseAvailableDates(t.availableDates);
 
           return (
-            <Col md="4" className="d-flex">
+            <Col key={t._id || t.id} md="4" className="d-flex">
               <Card
                 style={{
                   border: `1px solid ${border}`,
@@ -745,10 +745,10 @@ export default function CoordinatorTours() {
                   <Input
                     className="mt-2"
                     placeholder="Activity (e.g. Arrival, Summit Trek)"
-                    value={day[0]}
+                    value={day}
                     onChange={(e) => {
                       const updated = [...form.itinerary];
-                      updated[dayIndex][0] = e.target.value;
+                      updated[dayIndex] = e.target.value;
                       setForm((prev) => ({ ...prev, itinerary: updated }));
                     }}
                   />
@@ -778,7 +778,7 @@ export default function CoordinatorTours() {
                 onClick={() =>
                   setForm((prev) => ({
                     ...prev,
-                    itinerary: [...prev.itinerary, [""]],
+                    itinerary: [...prev.itinerary, ""],
                   }))
                 }
               >
