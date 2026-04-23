@@ -210,7 +210,7 @@ export default function Bookings() {
             specialRequests: b.specialRequests,
           }));
         }
-        console.log(normalized);
+        // console.log(normalized);
         setBookings(normalized);
       } catch (err) {
         console.error(err);
@@ -462,6 +462,7 @@ export default function Bookings() {
                   <option value="completed">Completed</option>
                   <option value="rejected">Rejected</option>
                   <option value="ongoing">Ongoing</option>
+                  <option value="upcoming">Upcoming</option>
                 </Input>
               </Col>
             )}

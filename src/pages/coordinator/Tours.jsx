@@ -91,7 +91,27 @@ export default function CoordinatorTours() {
   const [loading, setLoading] = useState(false);
   const [privateRange, setPrivateRange] = useState([null, null]);
   const [privateStart, privateEnd] = privateRange;
+  const [tourFilter, setTourFilter] = useState("all");
+  const getTourTimeStatus = (tour) => {
+    const dates = parseAvailableDates(tour.availableDates);
 
+    if (!dates.length) return "draft";
+
+    const today = new Date();
+    const start = new Date(dates[0].start);
+    const end = new Date(dates[0].end);
+
+    // normalize time (important)
+    today.setHours(0, 0, 0, 0);
+    start.setHours(0, 0, 0, 0);
+    end.setHours(0, 0, 0, 0);
+
+    if (today < start) return "upcoming";
+    if (today >= start && today <= end) return "ongoing";
+    if (today > end) return "completed";
+
+    return "draft";
+  };
   const [dateRange, setDateRange] = useState([null, null]);
   const [startDate, endDate] = dateRange;
   const [expandedCards, setExpandedCards] = useState({});
@@ -228,6 +248,8 @@ export default function CoordinatorTours() {
         headers: { Authorization: `Bearer ${token}` },
       });
       setTours(res.data || []);
+
+      // console.log(res.data);
     } catch (err) {
       console.error(err);
       toast.error("Failed to load tours");
@@ -428,6 +450,21 @@ export default function CoordinatorTours() {
     );
   };
 
+  const getStatusColor = (status) => {
+    switch (status) {
+      case "active":
+        return "#16A34A"; // green
+      case "completed":
+        return "#2563EB"; // blue
+      case "cancelled":
+        return "#DC2626"; // red
+      case "draft":
+        return "#6B7280"; // gray
+      default:
+        return "#6B7280";
+    }
+  };
+
   const getDaysBetween = (start, end) => {
     if (!start || !end) return 0;
 
@@ -470,6 +507,21 @@ export default function CoordinatorTours() {
   /* ================= UI ================= */
   return (
     <Container fluid style={{ fontFamily: "Poppins" }}>
+      <Row className="mb-3">
+        <div>Filter:</div>
+        <Col md="3">
+          <Input
+            type="select"
+            value={tourFilter}
+            onChange={(e) => setTourFilter(e.target.value)}
+          >
+            <option value="all">All</option>
+            <option value="upcoming">Upcoming</option>
+            <option value="ongoing">Ongoing</option>
+            <option value="completed">Completed</option>
+          </Input>
+        </Col>
+      </Row>
       {/* HEADER */}
       <Row className="mb-3">
         <Col>
@@ -490,148 +542,186 @@ export default function CoordinatorTours() {
 
       {/* TOUR LIST */}
       <Row className="g-3">
-        {tours.map((t) => {
-          const dates = parseAvailableDates(t.availableDates);
-
-          return (
-            <Col key={t._id || t.id} md="4" className="d-flex">
-              <Card
-                style={{
-                  border: `1px solid ${border}`,
-                  borderRadius: 16,
-                  height: "100%", // 🔥 important
-                }}
-              >
-                <CardBody
+        {tours
+          .filter((t) => {
+            if (tourFilter === "all") return true;
+            const status = getTourTimeStatus(t);
+            return status === tourFilter;
+          })
+          .map((t) => {
+            const dates = parseAvailableDates(t.availableDates);
+            return (
+              <Col key={t._id || t.id} md="4" className="d-flex">
+                <Card
                   style={{
-                    padding: 18,
-                    display: "flex",
-                    flexDirection: "column",
-                    justifyContent: "space-between",
+                    border: `1px solid ${border}`,
+                    borderRadius: 16,
+                    height: "100%", // 🔥 important
                   }}
                 >
-                  <div className="d-flex justify-content-between">
-                    <div>
-                      <h5 style={{ fontWeight: 900 }}>{t.title}</h5>
-                      <span
-                        style={{
-                          background: "#DCFCE7",
-                          color: green,
-                          padding: "6px 12px",
-                          borderRadius: 999,
-                          fontSize: 12,
-                          fontWeight: 700,
-                        }}
-                      >
-                        {t.category}
-                      </span>
-                    </div>
-
-                    <div className="d-flex gap-2">
-                      <Button
-                        size="sm"
-                        color="link"
-                        className="p-0"
-                        onClick={() => handleEdit(t)}
-                      >
-                        <FaEdit />
-                      </Button>
-
-                      <Button
-                        size="sm"
-                        color="link"
-                        className="p-0 text-danger"
-                        onClick={() => handleDelete(t._id || t.id)}
-                      >
-                        <FaTrash />
-                      </Button>
-                    </div>
-                  </div>
-
-                  <div
+                  <CardBody
                     style={{
-                      marginTop: 16,
-                      display: "grid",
-                      gridTemplateColumns: "80px 1fr",
-                      rowGap: 10,
-                      fontSize: 13,
+                      padding: 18,
+                      display: "flex",
+                      flexDirection: "column",
+                      justifyContent: "space-between",
                     }}
                   >
-                    <div style={{ color: muted, fontWeight: 700 }}>
-                      Duration:
-                    </div>
-                    <div>
-                      {dates.length > 0
-                        ? dates.map((d, i) => (
-                            <div key={i}>
-                              {formatDate(d.start)} – {formatDate(d.end)}
-                            </div>
-                          ))
-                        : "—"}
-                    </div>
-
-                    <div style={{ color: muted, fontWeight: 700 }}>Meetup:</div>
-                    <div>{t.address}</div>
-
-                    <div style={{ color: muted, fontWeight: 700 }}>
-                      Details:
-                    </div>
-                    <div>
-                      <div
-                        style={{
-                          display: "-webkit-box",
-                          WebkitLineClamp: expandedCards[t.id || t._id]
-                            ? "unset"
-                            : 2,
-                          WebkitBoxOrient: "vertical",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                        }}
-                      >
-                        {t.details}
-                      </div>
-
-                      {t.details && t.details.length > 80 && (
+                    <div className="d-flex justify-content-between">
+                      <div>
+                        <h5 style={{ fontWeight: 900 }}>{t.title}</h5>
                         <span
                           style={{
-                            color: "#16A34A",
-                            fontWeight: 600,
-                            cursor: "pointer",
+                            background: "#DCFCE7",
+                            color: green,
+                            padding: "6px 12px",
+                            borderRadius: 999,
                             fontSize: 12,
+                            fontWeight: 700,
                           }}
-                          onClick={() => toggleExpand(t.id || t._id)}
                         >
-                          {expandedCards[t.id || t._id]
-                            ? "See less"
-                            : "See more"}
+                          {t.category}
                         </span>
-                      )}
-                    </div>
-                  </div>
+                      </div>
 
-                  <div
-                    style={{
-                      marginTop: 18,
-                      display: "flex",
-                      justifyContent: "space-between",
-                      fontSize: 13,
-                    }}
-                  >
-                    <div style={{ color: muted, fontWeight: 700 }}>
-                      Join a group:
+                      <div className="d-flex gap-2">
+                        <Button
+                          size="sm"
+                          color="link"
+                          className="p-0"
+                          disabled={t.status !== "upcoming"}
+                          onClick={() => {
+                            if (t.status !== "upcoming") {
+                              toast.warning("You can only edit upcoming tours");
+                              return;
+                            }
+                            handleEdit(t);
+                          }}
+                        >
+                          <FaEdit />
+                        </Button>
+
+                        <Button
+                          size="sm"
+                          color="link"
+                          className="p-0 text-danger"
+                          onClick={() => handleDelete(t._id || t.id)}
+                        >
+                          <FaTrash />
+                        </Button>
+                      </div>
                     </div>
-                    <div style={{ fontWeight: 900 }}>
-                      ₱{Number(t.joinerPrice).toLocaleString()}{" "}
-                      <span style={{ color: muted }}>
-                        ({t.joinerMaxSlots} slots)
-                      </span>
+
+                    <div
+                      style={{
+                        marginTop: 16,
+                        display: "grid",
+                        gridTemplateColumns: "80px 1fr",
+                        rowGap: 10,
+                        fontSize: 13,
+                      }}
+                    >
+                      <div style={{ color: muted, fontWeight: 700 }}>
+                        Duration:
+                      </div>
+                      <div>
+                        {dates.length > 0
+                          ? dates.map((d, i) => (
+                              <div key={i}>
+                                {formatDate(d.start)} – {formatDate(d.end)}
+                              </div>
+                            ))
+                          : "—"}
+                      </div>
+
+                      <div style={{ color: muted, fontWeight: 700 }}>
+                        Meetup:
+                      </div>
+                      <div>{t.address}</div>
+
+                      <div style={{ color: muted, fontWeight: 700 }}>
+                        Details:
+                      </div>
+                      <div>
+                        <div
+                          style={{
+                            display: "-webkit-box",
+                            WebkitLineClamp: expandedCards[t.id || t._id]
+                              ? "unset"
+                              : 2,
+                            WebkitBoxOrient: "vertical",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                          }}
+                        >
+                          {t.details}
+                        </div>
+
+                        {t.details && t.details.length > 80 && (
+                          <span
+                            style={{
+                              color: "#16A34A",
+                              fontWeight: 600,
+                              cursor: "pointer",
+                              fontSize: 12,
+                            }}
+                            onClick={() => toggleExpand(t.id || t._id)}
+                          >
+                            {expandedCards[t.id || t._id]
+                              ? "See less"
+                              : "See more"}
+                          </span>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                </CardBody>
-              </Card>
-            </Col>
-          );
-        })}
+
+                    <div
+                      style={{
+                        marginTop: 18,
+                        display: "flex",
+                        justifyContent: "space-between",
+                        fontSize: 13,
+                      }}
+                    >
+                      <div style={{ color: muted, fontWeight: 700 }}>
+                        Join a group:
+                      </div>
+                      <div style={{ fontWeight: 900 }}>
+                        ₱{Number(t.joinerPrice).toLocaleString()}{" "}
+                        <span style={{ color: muted }}>
+                          ({t.joinerMaxSlots} slots)
+                        </span>
+                      </div>
+                      <div
+                        style={{
+                          display: "flex",
+                          gap: 8,
+                          marginTop: 6,
+                          flexWrap: "wrap",
+                        }}
+                      >
+                        {/* STATUS */}
+                        <span
+                          style={{
+                            background: "#F3F4F6",
+                            color: getStatusColor(t.status),
+                            padding: "6px 12px",
+                            borderRadius: 999,
+                            fontSize: 12,
+                            fontWeight: 700,
+                            textTransform: "capitalize",
+                            marginTop: "2rem",
+                          }}
+                        >
+                          {t.status || "draft"}
+                        </span>
+                      </div>
+                    </div>
+                  </CardBody>
+                </Card>
+              </Col>
+            );
+          })}
       </Row>
 
       {/* CREATE TOUR MODAL */}

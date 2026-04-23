@@ -77,11 +77,11 @@ export default function AdminBookingsManagement() {
             tour: tour.title,
             participants: tour.joinerBookedSlots,
             amount: tour.joinerPrice,
-            status: computeJoinerTourStatus(tour), // 🔥 changed
+            status: tour.status, // 🔥 changed
             createdAt: tour.createdAt,
             raw: tour,
           }));
-
+          // console.log(normalized);
           setBookings(normalized);
         }
       } catch (err) {
