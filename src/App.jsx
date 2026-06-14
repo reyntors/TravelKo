@@ -13,6 +13,7 @@ import Login from "./pages/Login";
 import BookAdventure from "./pages/BookAdventure";
 import TourDetails from "./pages/TourDetails";
 import BookPrivateTour from "./pages/BookPrivateTour";
+import FaceLiveness from "./pages/FaceLiveness";
 
 // Coordinator pages
 import CoordinatorLayout from "./pages/coordinator/CoordinatorLayout";
@@ -137,6 +138,19 @@ function App() {
               <Navbar />
               <main style={{ paddingTop: "80px" }}>
                 <Login />
+              </main>
+              <Footer />
+            </>
+          }
+        />
+
+        <Route
+          path="/face-liveness"
+          element={
+            <>
+              <Navbar />
+              <main style={{ paddingTop: "80px" }}>
+                <FaceLiveness />
               </main>
               <Footer />
             </>
